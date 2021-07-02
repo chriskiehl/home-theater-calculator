@@ -3,6 +3,8 @@
 .spago
 bower_components
 node_modules
+.purs-repl
+
 
 # Generated files
 .psci
