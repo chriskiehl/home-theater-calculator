@@ -11,7 +11,32 @@ When creating a new Spago project, you can use
 to generate this file without the comments in this block.
 -}
 { name = "my-project"
-, dependencies = [ "console", "effect", "prelude", "psci-support" ]
+, dependencies =
+  [ "arrays"
+  , "canvas"
+  , "console"
+  , "debug"
+  , "decimals"
+  , "effect"
+  , "exceptions"
+  , "foldable-traversable"
+  , "integers"
+  , "math"
+  , "maybe"
+  , "ordered-collections"
+  , "partial"
+  , "prelude"
+  , "psci-support"
+  , "random"
+  , "react-basic"
+  , "react-basic-dom"
+  , "react-basic-hooks"
+  , "record"
+  , "refs"
+  , "tuples"
+  , "web-dom"
+  , "web-html"
+  ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
 }

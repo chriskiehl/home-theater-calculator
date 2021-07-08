@@ -1,0 +1,7 @@
+
+#canvas { 
+    border: 1px solid black; 
+    display: block; 
+    margin: auto; 
+    box-sizing: border-box;
+}
