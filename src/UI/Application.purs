@@ -46,20 +46,24 @@ initialGeometry = {
 defaultSpecs :: TvSpecs
 defaultSpecs = {
   screenSize: 60.0, 
-  aspectRatio: 16.0/9.0 
+  aspectRatio: {width: 16.0, height: 9.0}
 }
+
+
+
 
 initialState :: ApplicationState
 initialState = {
   sprites: Map.fromFoldable [
     Tuple LeftFront   Sprites.twoStackSprite{id=LeftFront},
     Tuple RightFront  Sprites.twoStackSprite{id=RightFront},
-    -- Tuple TV Sprites.tvSprite{id=TV, pos={x: 3.0/2.0, y: 0.0}},
+    Tuple TV          Sprites.twoBlockSprite{id=TV, pos={x: 3.0/2.0, y: 0.0}},
     Tuple Chair       Sprites.blockSprite{id=Chair},
+    -- Tuple Center      Sprites.twoStackSprite{id=Center},
     Tuple LeftRear    Sprites.twoStackSprite{id=LeftRear},
     Tuple RightRear   Sprites.twoStackSprite{id=RightRear}
   ],
-  geometry: {center: {x: 0.0, y:0.0}, radius: 6.0, width: 12.0, depth: 15.0},
+  geometry: Core.forScreenSize initialGeometry defaultSpecs,
   tvSpecs: defaultSpecs,
   form: {
     roomWidth: {id: Width, value: 12, error: Nothing},
@@ -71,7 +75,7 @@ initialState = {
 
 reducer :: ApplicationState -> Action -> ApplicationState 
 reducer state action = case action of 
-  UpdateField id value -> Core.updateField state id value 
+  UpdateField id value -> Core.repositionSprites $ Core.updateField state id value 
   MouseDown pos -> Core.handleMouseDown state pos 
   MouseUp pos -> Core.updateSprites (\s -> s{isBeingDragged=false, image=s.images.normal}) state 
   MouseMove pos -> 

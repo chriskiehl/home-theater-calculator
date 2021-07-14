@@ -111,7 +111,7 @@ twoBlockSprite = {
   originOffset: {x: 1.5, y: 0.5},
   clickOffset: {x: 0.0, y: 0.0},
   image: twoblock, 
-  images: {normal: twoblock, hover: block4x3hover},
+  images: {normal: twoblock, hover: twoblock},
   isBeingDragged: false, 
   size: {x: 2.0, y: 1.0, z: 1.0}
 }

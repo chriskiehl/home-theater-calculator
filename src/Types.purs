@@ -30,7 +30,6 @@ type CanvasPosition = {
 type ScreenSize = Number 
 type DiagonalLength = Number 
 type FOV = Degree
-type AspectRatio = Number 
 
 data SpriteID
   = TV
@@ -76,6 +75,10 @@ type Sprite = {
   size :: Vector3
 }
 
+type AspectRatio = {
+  width :: Number, 
+  height :: Number
+}
 
 type Images = {
   normal :: String, 
@@ -91,7 +94,7 @@ type FormFields = {
 
 type TvSpecs = {
   screenSize :: DiagonalLength, 
-  aspectRatio :: AspectRatio
+  aspectRatio :: AspectRatio 
 }
 
 type ApplicationState = {

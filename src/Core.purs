@@ -11,7 +11,7 @@ import Data.Tuple (Tuple(..))
 import Debug (spy)
 import Math as Math
 import ParseInt (parseBase10, parseInt)
-import Types (ApplicationState, AudioChannels(..), Degree, FormID(..), Geometry, LocalPosition, Position, ScreenSize, Sprite, SpriteID(..), FOV)
+import Types (ApplicationState, AudioChannels(..), Degree, FOV, FormID(..), Geometry, LocalPosition, Position, ScreenSize, Sprite, SpriteID(..), TvSpecs)
 import Utils (unsafeLookup)
 import Vector (Matrix2D, Vector, norm, (:**:), (:*:), (:+:), (:-:))
 
@@ -44,7 +44,7 @@ updateField state id value = case id of
     Just _ -> state{form{channels{value=value}}}
     Nothing -> state{form{channels{error=Just "Invalid input"}}}
   Width -> case (parseRoomDimension value) of 
-    Just width -> state{form{roomWidth{value=width}}, geometry{width=(toNumber width), center{x=(toNumber width) / 2.0}}}
+    Just width -> state{form{roomWidth{value=width}}, geometry{width=(toNumber width), center{x=((toNumber width) / 2.0)}}}
     Nothing -> state{form{roomWidth{error=Just "Must be a valid number!"}}}
   Depth -> case (parseRoomDimension value) of 
     Just width -> state{form{roomDepth{value=width}}, geometry{depth=(toNumber width)}}
@@ -57,8 +57,21 @@ spriteInBounds pos s = inBounds4 pos s
 -- screenSize 
 -- aspectRatio 
 
-forScreenSize :: Geometry -> ScreenSize -> FOV -> Geometry
-forScreenSize currentGeometry screenDiagonal fov = currentGeometry 
+forScreenSize :: Geometry -> TvSpecs -> Geometry
+forScreenSize currentGeometry tv = currentGeometry{center{y=units}, radius=radius / 16.0}
+  where 
+  {screenSize, aspectRatio} = spy "tv:" tv
+  goo = spy "input:" (aspectRatio.height / aspectRatio.width )
+  diagonalDegrees = spy "diagonal:" $ atan (aspectRatio.height / aspectRatio.width )
+  screenWidth = spy "screenWidth: " $ (cos diagonalDegrees) * screenSize 
+
+  fov = 20.0 
+  distance = spy "distance:" $ (screenWidth / 2.0) / (tan fov)
+  radius = spy "radius:" $ distance / (cos 30.0)
+  units = spy "units: " $ distance / 16.0
+
+
+
 
 
 
@@ -103,12 +116,16 @@ repositionSprites state = state{sprites=Map.union updates state.sprites}
   where 
   sprites = state.sprites
   geometry = state.geometry 
+  distToTv = (cos 30.0) * geometry.radius
+  tvPos = geometry.center :-: {x: 0.0, y: distToTv}
   updates = Map.fromFoldable [
     Tuple Chair $ centerXY (unsafeLookup Chair sprites){pos=geometry.center},
+    Tuple TV    $ centerXY (unsafeLookup TV sprites){pos=tvPos},
+    -- Tuple Center    $ centerXY (unsafeLookup Center sprites){pos=geometry.center :-: {x: 0.0, y: geometry.radius}},
     Tuple LeftFront $ positionSprite (unsafeLookup LeftFront sprites) geometry (-30.0),
     Tuple RightFront $ positionSprite (unsafeLookup RightFront sprites) geometry (30.0),
-    Tuple RightRear $ positionSprite (unsafeLookup RightRear sprites) geometry (180.0),
-    Tuple LeftRear $ positionSprite (unsafeLookup LeftRear sprites) geometry (-90.0)
+    Tuple RightRear $ positionSprite (unsafeLookup RightRear sprites) geometry (110.0),
+    Tuple LeftRear $ positionSprite (unsafeLookup LeftRear sprites) geometry (-110.0)
     -- Tuple LeftRear $ positionSprite (unsafeLookup RightFront sprites) geometry (90.0)
   ]
 
@@ -118,6 +135,7 @@ positionSprite sprite {center, radius} degrees = centerXY sprite{pos=targetPos}
   forwardVector = {x: 0.0, y: -radius} 
   rotatedVector = rotate forwardVector degrees 
   targetPos = rotatedVector :+: center
+
 
 updateFuck :: ApplicationState -> Sprite -> Vector -> ApplicationState
 updateFuck state s v = case s.id of 
@@ -194,17 +212,34 @@ onDragdd cursorPos s state = state{sprites=updatedSprites, geometry=newCenter}
   isDrag = s.isBeingDragged
   isChair = s.id == Chair 
   nextPos = (localToIso cursorPos) :-: s.clickOffset
+  leftRear = unsafeLookup LeftRear state.sprites 
+  leftFront = unsafeLookup LeftFront state.sprites
   -- _ = if isDrag then spy "nextPos:" [nextPos.x, nextPos.y] else []
   heading = norm $ nextPos :-: s.pos 
   forward = heading.y > 0.0
   delta = dist {x: 0.0, y: nextPos.y} {x: 0.0, y: s.pos.y}
   deltaDirection = if forward then delta else -delta
   xConstrainedPos = {x: s.pos.x, y: nextPos.y} 
+  ---FUUUUCUUUUCCCKKK 
+  --- this geometry thing is broken by design 
+  -- I need to be able to do collision detection on the sprites 
+  -- which get moved in response to the current sprite. and THOSE don't 
+  -- get moved until repositionSprites, so... yeah, I don't have enough info here 
+  -- to do the collision detection. Arg. 
+  -- unless I move repositionSprites here, but then this method does EVERYTHING... 
+  -- ... ... 
+  -- hm. 
+  -- Not sure what to do. Everything _needs_ to know about everything else because moving 
+  -- one thing affects all the things....... 
   updatedSprite = if s.isBeingDragged then s{pos=xConstrainedPos, image=s.images.hover} else s
   updatedSprites = Map.insert s.id updatedSprite state.sprites 
-  newCenter = if isDrag && (not isChair) then state.geometry{center = {x: state.geometry.center.x, y: state.geometry.center.y + deltaDirection}} else state.geometry
+  newCenter = if isDrag && (not isChair) && (leftRear.pos.y < state.geometry.depth && leftFront.pos.y > -2.0)
+              then state.geometry{center = {x: state.geometry.center.x, y: state.geometry.center.y + deltaDirection}} 
+              else state.geometry
   -- _ = if isDrag then spy "distance: " delta else 0.0
   -- _ = if isDrag then spy "norm: " [heading.x, heading.y] else []
+
+
 
 toRadians :: Degree -> Number 
 toRadians x = x * (Math.pi / 180.0)
@@ -217,6 +252,12 @@ sin = Math.sin <<< toRadians
 
 cos :: Degree -> Number 
 cos = Math.cos <<< toRadians 
+
+tan :: Degree -> Number 
+tan = Math.tan <<< toRadians
+
+atan :: Degree -> Number 
+atan = toDegrees <<< Math.atan
 
 
 rotate :: Vector -> Degree -> Vector 

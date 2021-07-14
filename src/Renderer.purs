@@ -25,11 +25,12 @@ import Vector (Matrix2D, Vector, (:**:), (:*:), (:+:), (:-:))
 
 render :: Context2D -> ApplicationState -> Effect Unit
 render ctx state = do 
+  let r = spy "render: " (unsafeLookup Chair state.sprites).pos.x 
   Canvas.clearRect ctx {x: 0.0, y: 0.0, width: 900.0, height: 900.0}
   tilebackground ctx 
   renderFloor ctx state 
-  renderSprites ctx state
   -- drawLines ctx state 
+  renderSprites ctx state
 
 
 -- | Tiles the background with an alternating 32x32 checkerboard pattern
@@ -51,10 +52,10 @@ renderSprites ctx state = do
   for_ (M.values state.sprites) \s -> 
     let sprt = s
         -- cdd  = spy "renderSpritesNormal?" $ s.image == s.images.normal 
-    in if sprt.id == TV 
-      then pure unit 
-      else drawSprite ctx sprt{pos=sprt.pos :-: sprt.originOffset}
-    -- in drawSprite ctx sprt{pos=(sprt.pos :-: sprt.originOffset)}
+    -- in if sprt.id == TV 
+    --   then pure unit 
+    --   else drawSprite ctx sprt{pos=sprt.pos :-: sprt.originOffset}
+    in drawSprite ctx sprt{pos=(sprt.pos :-: sprt.originOffset)}
 
 
 renderFloor :: Context2D -> ApplicationState -> Effect Unit 
@@ -133,18 +134,18 @@ drawLines ctx state = do
     Canvas.closePath ctx 
     Canvas.stroke ctx 
 
-    drawSprite ctx tempChair{pos=tempChair.pos :-: tempChair.originOffset}
-    if deg == 30.0 || deg == (330.0)
-    then drawSprite ctx (anchorCenterSouth tmpSpeakerA)
-    else pure unit 
+    -- drawSprite ctx tempChair{pos=tempChair.pos :-: tempChair.originOffset}
+    -- if deg == 30.0 || deg == (330.0)
+    -- then drawSprite ctx (anchorCenterSouth tmpSpeakerA)
+    -- else pure unit 
 
-    if deg == 120.0
-    then drawSprite ctx (anchorCenterWest tmpSpeakerA)
-    else pure unit 
+    -- if deg == 120.0
+    -- then drawSprite ctx (anchorCenterWest tmpSpeakerA)
+    -- else pure unit 
 
-    if deg == (360.0 - 120.0)
-    then drawSprite ctx (anchorCenterEast tmpSpeakerA)
-    else pure unit 
+    -- if deg == (360.0 - 120.0)
+    -- then drawSprite ctx (anchorCenterEast tmpSpeakerA)
+    -- else pure unit 
 
 
 drawSprite :: Context2D -> Sprite -> Effect Unit 
