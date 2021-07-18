@@ -20,27 +20,6 @@ import Web.HTML.HTMLDocument (toNonElementParentNode)
 import Web.HTML.Window (document)
 
 
-initialState :: GameState
-initialState = {
-  invalidWidth: false,
-  invalidDepth: false,
-  selectedMode: HomeTheater, 
-  selectedChannels: Channels2_0,
-  sprites: Map.fromFoldable [
-    -- Tuple LeftFront  twoBlockSprite{id=LeftFront, pos={x: 0.0, y: 0.0}},
-    -- Tuple RightFront  twoStackSprite{id=RightFront, pos={x: 0.0, y: 0.0}},
-    -- Tuple TV tvSprite{id=TV, pos={x: 3.0/2.0, y: 0.0}},
-    -- Tuple Chair blockSprite{id=Chair, pos={x:5.0/2.0 - blockSprite.size.x / 2.0, y: 6.9}},
-    -- Tuple LeftRear twoStackSprite{id=LeftRear, pos={x: 0.0, y: 0.0}},
-    -- Tuple RightRear twoStackSprite{id=RightRear, pos={x: 0.0, y: 0.0}}
-  ],
-  geometry: {
-    width: 12.0, 
-    depth: 15.0, 
-    center: {x:5.0/2.0, y: 6.9},
-    radius: 6.0
-  }
-}
 
 main :: Effect Unit
 main = unsafePartial do

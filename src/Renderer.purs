@@ -4,12 +4,14 @@ import Prelude
 
 import CanvasSupport (fromDataSource)
 import Core (anchorCenterEast, anchorCenterSouth, anchorCenterWest)
+import Core as Core
 import Data.Array as Array
 import Data.Foldable (for_)
 import Data.Int (fromNumber, toNumber)
 import Data.Map as M
 import Data.Maybe (fromMaybe)
 import Debug (spy)
+import Debugging (highlightHitboxes, outlineFootprint)
 import Effect (Effect)
 import Effect.Ref (Ref)
 import Effect.Ref as Refs
@@ -19,18 +21,21 @@ import Math ((%))
 import Math as Math
 import Sprites as Sprites
 import Trig (toRadians)
-import Types (ApplicationState, Degree, Sprite, SpriteID(..))
+import Types (AnchorPosition(..), ApplicationState, Degree, Sprite, SpriteID(..))
 import Utils (unsafeLookup)
 import Vector (Matrix2D, Vector, (:**:), (:*:), (:+:), (:-:))
 
 render :: Context2D -> ApplicationState -> Effect Unit
 render ctx state = do 
-  let r = spy "render: " (unsafeLookup Chair state.sprites).pos.x 
+  -- let r = spy "render: " (unsafeLookup Chair state.sprites).pos.x 
   Canvas.clearRect ctx {x: 0.0, y: 0.0, width: 900.0, height: 900.0}
   tilebackground ctx 
   renderFloor ctx state 
   -- drawLines ctx state 
   renderSprites ctx state
+  -- highlightHitboxes ctx state
+  for_ (M.values state.sprites) (outlineFootprint ctx)
+  
 
 
 -- | Tiles the background with an alternating 32x32 checkerboard pattern
@@ -50,13 +55,17 @@ renderSprites :: Context2D -> ApplicationState -> Effect Unit
 renderSprites ctx state = do 
   -- let _ = spy "renderSpritesBefore?" $ (unsafeLookup Chair state.sprites).image == (unsafeLookup Chair state.sprites).images.normal
   for_ (M.values state.sprites) \s -> 
-    let sprt = s
+    let sprt = Core.anchorAdjusted s
         -- cdd  = spy "renderSpritesNormal?" $ s.image == s.images.normal 
     -- in if sprt.id == TV 
     --   then pure unit 
     --   else drawSprite ctx sprt{pos=sprt.pos :-: sprt.originOffset}
-    in drawSprite ctx sprt{pos=(sprt.pos :-: sprt.originOffset)}
+    in drawSprite ctx sprt -- {pos=(sprt.pos :-: sprt.originOffset)}
 
+  Canvas.setFillStyle ctx "red"
+  for_ (M.values state.sprites) \s -> 
+    let ss = ((16.0 :*: (s.pos)) :**: isoTransform) :+: {x: 448.0, y: 250.0} 
+    in Canvas.fillRect ctx {x: ss.x, y: ss.y, width: 2.0, height: 2.0}
 
 renderFloor :: Context2D -> ApplicationState -> Effect Unit 
 renderFloor ctx {geometry} = do 
@@ -104,7 +113,7 @@ drawLines ctx state = do
     let pp = toIso p 
     let oo = toIso o
 
-    let controlSprite = Sprites.tvSprite{id=LeftFront, pos={x:0.0, y: 0.0}}
+    -- let controlSprite = Sprites.tvSprite{id=LeftFront, pos={x:0.0, y: 0.0}}
 
     let centerize = p :-: (0.5 :*: {x: Sprites.blockSprite.size.x, y: Sprites.blockSprite.size.y})
     let tempChair = Sprites.blockSprite{id=Chair, pos=centerize}

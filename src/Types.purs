@@ -31,6 +31,8 @@ type ScreenSize = Number
 type DiagonalLength = Number 
 type FOV = Degree
 
+type SpriteMap = Map.Map SpriteID Sprite
+
 data SpriteID
   = TV
   | LeftFront 
@@ -41,10 +43,24 @@ data SpriteID
   | Chair  
   | Placeholder 
 
+-- | 
+data AnchorPosition 
+  = CenterNorth
+  | CenterSouth 
+  | CenterEast
+  | CenterWest 
+  | Bottom 
+  | Top 
+  | TopLeft 
+  | TrueOrigin
+  | LogicalOrigin 
+
 derive instance eqSpriteId :: Eq SpriteID  
 derive instance ordSpriteId :: Ord SpriteID  
 derive instance eqFormID :: Eq FormID
 derive instance ordFormID :: Ord FormID
+derive instance eqAnchorPos :: Eq AnchorPosition
+derive instance ordAnchorPos :: Ord AnchorPosition
 
 type FormField a r = (
   id :: FormID, 
@@ -72,7 +88,8 @@ type Sprite = {
   image :: String, 
   images :: Images, 
   isBeingDragged :: Boolean,
-  size :: Vector3
+  size :: Vector3,
+  anchor :: AnchorPosition
 }
 
 type AspectRatio = {

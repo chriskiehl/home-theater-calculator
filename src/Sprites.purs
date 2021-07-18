@@ -1,7 +1,7 @@
 module Sprites where
 
 import Prelude ((-), negate)
-import Types (Sprite, SpriteID(..))
+import Types (AnchorPosition(..), Sprite, SpriteID(..))
 
 tv :: String 
 tv = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAAAXNSR0IArs4c6QAAA2JJREFUeJztnU1u8jAQhoeKm6BeI0eq1G0PwBaJI+Uan3oWukBvvmAIiZ2x58fz7GARV/NgO8Mb6gMVcr5ebvPXP1/fh9Jr9Ux20VD4YRge3h/HkYhCRC6bi7VU+JQQkcdqkbYWPiVEbGOxOKWFTwkR73kqClfhU0LEa6Zi1Cp8Soh45NCq8Ckh4s6H9B9wvl5uaU/RE0ciotPpc/pEtlqC0nEgobcZcThfL7fT6XN64/f3HxHV24Sjj3jkSQDgElE6s3oRsSgAlIrgWtK8i1gVALaKqLWXeBWxWQBYEtF6E/ciIlsAgAgQfUQZxX1AibQaWO8jjhwXiT6iHBYBRP9nRO1NeOm6eN+aCDYBgFtE7nWsiWAXAPaK2CvQiohqAkCuCO4lTLuI6gLAmojam7hWEc0EgFQEaNVHaBPxQfTcVLUg+og7Ux4ACRKF6bmPmJYgFF5KRK99xNMe4E2E9j5icRO2LsJKH7F6F2RNhLU+YvNtqHYRVvuI7D4gFdEab30ESx7QYx8xDAMNw7C7j2DLA3rpI1L2zgj2PEDrHqGVanlALyLm46T70haq5wFeRXBdt1ke4EUEt9DmeYBVEbVmklgeoKWPkHrSDxyJ7sWQ+ERCgtT4RHKdNVCTB2hZmkCr21h1eYDk+LV+G/EOtXmA5Ixsifo8wLsIM3mAVxHm8gBvIszmAVLjc+MiD7Asg+WH2riFk5wVkuPvwV0eIDV+yVfRRI7zgFbjRx4gNH7kAULjRx4gNH7kAZXGXxMReUDF8TH2/DVolgfgORY819JrHjCfkeM4ts8DpEVo2CNU5AG9i2jN4iYcItqwehcUIuqy+TY0RNQhuw9IRbRGuo/gpvjr6J+v7wNkRB5Qzu5OWHppwphWlya2ryKkRUjvEWrygN5EqM0DvIswkwd4E2E2D7Auwk0eoK2PUJEHSDAX0XUeUPXqG9C2NBG1zQPET9AA6KylHrCaixfNA6SRnhGtUScA9CJCrQDgXYR6AcCrCDMCgHQfwY2au6BcpPMILszNgBTrS5N5AUBaRGkeoOIfWNegRETJg1l7z7JxKwDkiMgRwHWIkHsBYIuILQK4T2/qRgB4J+KdgFrHZnUnALwS8UpA7fPKuhUA5iLmAlodFNe9AJB21tInawRBEARBEPjmDzs4VefD2DuFAAAAAElFTkSuQmCC"
@@ -67,17 +67,17 @@ oneTwoOne :: String
 oneTwoOne = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAfZJREFUeJztmrtOwzAYhU+rbIiFV4i6sCFm8jiICYmVB2BFYkI8jpkRG0uVV2BBzGVAJ0qdpL5fIv3f1FaK/Z8vcWzZ3Xy/vx0A4OLmdoOMPL08H8bfH+8fsvZPhk5ziWDwruuOfldKAcgvYtJZKhFLwXVyi1jsJJYI2+A6uUQYG/cV4RtcJ7UI60ZtRcQKrpNKhHNjSyJSBdeJLcK7EYp4/fwFkD64TiwRje+FDH53dQYA+AqpoiDOAvRHncEvfz7+v59fRyptHt75ruuGzyFYCzCNcQZPJWIcPCZGAa4vt9giUgUniwJC3+qhIlIHJxMBsaczVxG5gpNBQOp53CQid3DS5FrAEF1EqXUE8V4HhMLgQLnwALAFgLbdQSkVZV41wX5Khh4zPAFtuwOQbiyWGuMmJkMgtohag5PFd0CoiNqDE+NL0FXEWoIT61nAJGJtwYnzNKiLIGsLTra+F1IEUCZ8rCm72ELIl9hbYqsRkGpTtHoBqbfFqxWQ62CkOgG5j8aqEVDqcLQKAUqpYsfjDQD0/f5oXs9BqTuuM3TOnSEXEX2/B+C2EKolOJkU4SLCRUBtwcliMTYibATUGpwYizol4pSA2oMT6+LmRMwJWEtw4lzkWMRYwNqCE+9ia/mbmyAIgiAIgiAIgiAIgiAIgiAIgi1/HSE21RjnWbUAAAAASUVORK5CYII="
 
 
-wallSprite :: Sprite
-wallSprite = {
-  id: Placeholder,
-  pos: {x: 0.0, y: 0.0},
-  originOffset: {x: 2.5, y: 1.5},
-  clickOffset: {x: 0.0, y: 0.0},
-  image: wall2, 
-  images: {normal: block4x3, hover: block4x3hover},
-  isBeingDragged: false, 
-  size: {x: 2.0, y: 1.0, z: 2.0}
-}
+-- wallSprite :: Sprite
+-- wallSprite = {
+--   id: Placeholder,
+--   pos: {x: 0.0, y: 0.0},
+--   originOffset: {x: 2.5, y: 1.5},
+--   clickOffset: {x: 0.0, y: 0.0},
+--   image: wall2, 
+--   images: {normal: block4x3, hover: block4x3hover},
+--   isBeingDragged: false, 
+--   size: {x: 2.0, y: 1.0, z: 2.0}
+-- }
 
 thiccWallSprite :: Sprite
 thiccWallSprite = {
@@ -88,7 +88,8 @@ thiccWallSprite = {
   image: thiccWall, 
   images: {normal: block4x3, hover: block4x3hover},
   isBeingDragged: false, 
-  size: {x: 2.0, y: 2.0, z: 2.0}
+  size: {x: 2.0, y: 2.0, z: 2.0},
+  anchor: LogicalOrigin
 }
 
 
@@ -101,7 +102,9 @@ blockSprite = {
   image: block, 
   images: {normal: block, hover: blockhover},
   isBeingDragged: false, 
-  size: {x: 1.0, y: 1.0, z: 1.0}
+  size: {x: 1.0, y: 1.0, z: 1.0},
+  anchor: CenterNorth
+
 }
 
 twoBlockSprite :: Sprite
@@ -113,7 +116,8 @@ twoBlockSprite = {
   image: twoblock, 
   images: {normal: twoblock, hover: twoblock},
   isBeingDragged: false, 
-  size: {x: 2.0, y: 1.0, z: 1.0}
+  size: {x: 2.0, y: 1.0, z: 1.0},
+  anchor: CenterSouth
 }
 
 twoStackSprite :: Sprite
@@ -125,43 +129,44 @@ twoStackSprite = {
   image: twostack, 
   images: {normal: twostack, hover: twostackHover},
   isBeingDragged: false, 
-  size: {x: 1.0, y: 1.0, z: 2.0}
+  size: {x: 1.0, y: 1.0, z: 2.0},
+  anchor: CenterSouth
 }
 
-speakerSprite :: Sprite
-speakerSprite = {
-  id: Placeholder,
-  pos: {x: -1.0, y: -1.0},
-  originOffset: {x: 1.5, y: 0.5},
-  clickOffset: {x: 0.0, y: 0.0},
-  image: speaker, 
-  images: {normal: block4x3, hover: block4x3hover},
-  isBeingDragged: false, 
-  size: {x: 1.0, y: 1.0, z: 2.0}
-}
+-- speakerSprite :: Sprite
+-- speakerSprite = {
+--   id: Placeholder,
+--   pos: {x: -1.0, y: -1.0},
+--   originOffset: {x: 1.5, y: 0.5},
+--   clickOffset: {x: 0.0, y: 0.0},
+--   image: speaker, 
+--   images: {normal: block4x3, hover: block4x3hover},
+--   isBeingDragged: false, 
+--   size: {x: 1.0, y: 1.0, z: 2.0}
+-- }
 
-oneTwoOneSprite :: Sprite
-oneTwoOneSprite = {
-  id: Placeholder,
-  pos: {x: -1.0, y: -1.0},
-  originOffset: {x: 1.5, y: 0.5},
-  clickOffset: {x: 0.0, y: 0.0},
-  image: oneTwoOne, 
-  images: {normal: oneTwoOne, hover: oneTwoOne},
-  isBeingDragged: false, 
-  size: {x: 1.0, y: 2.0, z: 1.0}
-}
+-- oneTwoOneSprite :: Sprite
+-- oneTwoOneSprite = {
+--   id: Placeholder,
+--   pos: {x: -1.0, y: -1.0},
+--   originOffset: {x: 1.5, y: 0.5},
+--   clickOffset: {x: 0.0, y: 0.0},
+--   image: oneTwoOne, 
+--   images: {normal: oneTwoOne, hover: oneTwoOne},
+--   isBeingDragged: false, 
+--   size: {x: 1.0, y: 2.0, z: 1.0}
+-- }
 
-tvSprite :: Sprite 
-tvSprite = {
-  id: Placeholder,
-  pos: {x: 2.5, y: 0.0},
-  originOffset: {x: 3.5, y: 2.5},
-  clickOffset: {x: 0.0, y: 0.0},
-  image: tv, 
-  images: {normal: block4x3, hover: block4x3hover},
-  isBeingDragged: false, 
-  size: {x: 4.2, y: 1.0, z: 3.0}
-  -- width: 50.0, 
-  -- aspectRatio: 1.24
-}
+-- tvSprite :: Sprite 
+-- tvSprite = {
+--   id: Placeholder,
+--   pos: {x: 2.5, y: 0.0},
+--   originOffset: {x: 3.5, y: 2.5},
+--   clickOffset: {x: 0.0, y: 0.0},
+--   image: tv, 
+--   images: {normal: block4x3, hover: block4x3hover},
+--   isBeingDragged: false, 
+--   size: {x: 4.2, y: 1.0, z: 3.0}
+--   -- width: 50.0, 
+--   -- aspectRatio: 1.24
+-- }

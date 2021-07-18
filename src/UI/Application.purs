@@ -31,16 +31,16 @@ import Renderer as CanvasRenderer
 import SimulationCanvas (mainCanvas)
 import Sprites as Sprites
 import Type.Proxy (Proxy(..))
-import Types (Action(..), ApplicationState, AudioChannels(..), FormField, FormID(..), Geometry, NumericField, SelectField, SpriteID(..), TextField, TvSpecs)
+import Types (Action(..), AnchorPosition(..), ApplicationState, AudioChannels(..), FormField, FormID(..), Geometry, NumericField, SelectField, SpriteID(..), TextField, TvSpecs)
 import Unsafe.Coerce (unsafeCoerce)
 import Utils (unsafeLookup)
 
 initialGeometry :: Geometry
 initialGeometry = {
-  width: 12.0, 
+  width: 15.0, 
   depth: 15.0, 
   radius: 8.0, 
-  center: {x: 6.0, y: 0.0}
+  center: {x: 15.0/2.0, y: 1.0}
 }
 
 defaultSpecs :: TvSpecs
@@ -50,18 +50,15 @@ defaultSpecs = {
 }
 
 
-
-
 initialState :: ApplicationState
 initialState = {
   sprites: Map.fromFoldable [
+    Tuple Chair       Sprites.blockSprite{id=Chair, pos={x: 0.0, y: 0.0}},
     Tuple LeftFront   Sprites.twoStackSprite{id=LeftFront},
     Tuple RightFront  Sprites.twoStackSprite{id=RightFront},
     Tuple TV          Sprites.twoBlockSprite{id=TV, pos={x: 3.0/2.0, y: 0.0}},
-    Tuple Chair       Sprites.blockSprite{id=Chair},
-    -- Tuple Center      Sprites.twoStackSprite{id=Center},
-    Tuple LeftRear    Sprites.twoStackSprite{id=LeftRear},
-    Tuple RightRear   Sprites.twoStackSprite{id=RightRear}
+    Tuple LeftRear    Sprites.twoStackSprite{id=LeftRear, anchor=CenterEast},
+    Tuple RightRear   Sprites.twoStackSprite{id=RightRear, anchor=CenterWest}
   ],
   geometry: Core.forScreenSize initialGeometry defaultSpecs,
   tvSpecs: defaultSpecs,
@@ -92,7 +89,9 @@ application = do
   envRef <- spy "again?" $ Refs.new Nothing -- {canvas: Nothing, ctx: Nothing}
   reducer' <- mkReducer reducer 
   component "Reducer" \_ -> React.do
-    state /\ dispatch <- useReducer initialState reducer'
+    state /\ dispatch <- useReducer initialState{sprites=(Core.layoutSprites initialState.sprites initialState.geometry)} reducer'
+    -- state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x:0.0, y:1.0}} reducer'
+    -- state /\ dispatch <- useReducer initialState reducer'
 
     -- lookup the canvas element in the DOM and store it 
     -- in our mutable Ref. 
