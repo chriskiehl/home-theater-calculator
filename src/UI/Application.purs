@@ -56,7 +56,7 @@ initialState = {
     Tuple Chair       Sprites.blockSprite{id=Chair, pos={x: 0.0, y: 0.0}},
     Tuple LeftFront   Sprites.twoStackSprite{id=LeftFront},
     Tuple RightFront  Sprites.twoStackSprite{id=RightFront},
-    Tuple TV          Sprites.twoBlockSprite{id=TV, pos={x: 3.0/2.0, y: 0.0}},
+    Tuple TV          Sprites.threeBlockTwoZSprite{id=TV, pos={x: 3.0/2.0, y: 0.0}},
     Tuple LeftRear    Sprites.twoStackSprite{id=LeftRear, anchor=CenterEast},
     Tuple RightRear   Sprites.twoStackSprite{id=RightRear, anchor=CenterWest}
   ],
@@ -89,7 +89,7 @@ application = do
   envRef <- spy "again?" $ Refs.new Nothing -- {canvas: Nothing, ctx: Nothing}
   reducer' <- mkReducer reducer 
   component "Reducer" \_ -> React.do
-    state /\ dispatch <- useReducer initialState{sprites=(Core.layoutSprites initialState.sprites initialState.geometry)} reducer'
+    state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x: 0.0, y: 1.0}} reducer'
     -- state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x:0.0, y:1.0}} reducer'
     -- state /\ dispatch <- useReducer initialState reducer'
 

@@ -8,10 +8,12 @@ import Core as Core
 import Data.Array as Array
 import Data.Foldable (for_)
 import Data.Int (fromNumber, toNumber)
+import Data.List (sortBy, reverse)
 import Data.Map as M
 import Data.Maybe (fromMaybe)
+import Data.Number.Format (fixed, toStringWith)
 import Debug (spy)
-import Debugging (highlightHitboxes, outlineFootprint)
+import Debugging (drawAllReflections, drawFirstReflections, drawRearReflections, highlightHitboxes, outlineFootprint, traceActualTvSize)
 import Effect (Effect)
 import Effect.Ref (Ref)
 import Effect.Ref as Refs
@@ -35,6 +37,12 @@ render ctx state = do
   renderSprites ctx state
   -- highlightHitboxes ctx state
   for_ (M.values state.sprites) (outlineFootprint ctx)
+  traceActualTvSize ctx state 
+  -- drawFirstReflections ctx state 
+  -- drawRearReflections ctx state 
+  drawAllReflections ctx state
+  Canvas.setFont ctx "30px arial black"
+  Canvas.fillText ctx (toStringWith (fixed 2) (Core.fieldOfView state.sprites state.tvSpecs)) 100.0 100.0
   
 
 
@@ -54,7 +62,7 @@ tilebackground ctx = do
 renderSprites :: Context2D -> ApplicationState -> Effect Unit 
 renderSprites ctx state = do 
   -- let _ = spy "renderSpritesBefore?" $ (unsafeLookup Chair state.sprites).image == (unsafeLookup Chair state.sprites).images.normal
-  for_ (M.values state.sprites) \s -> 
+  for_ (reverse (sortBy (\a b -> compare b.pos.x a.pos.x ) (M.values state.sprites))) \s -> 
     let sprt = Core.anchorAdjusted s
         -- cdd  = spy "renderSpritesNormal?" $ s.image == s.images.normal 
     -- in if sprt.id == TV 

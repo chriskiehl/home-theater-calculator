@@ -57,6 +57,15 @@ updateField state id value = case id of
 spriteInBounds :: LocalPosition -> Sprite -> Boolean 
 spriteInBounds pos s = inBoundsDebug (localToIso pos) s
 
+centerX :: SpriteMap -> Geometry -> SpriteMap 
+centerX sprites {width} = translateSprites sprites {x: delta, y: 0.0}
+  where 
+  currentCenter = (unsafeLookup Chair sprites) 
+  delta = currentCenter.pos.x - (width/2.0)
+
+
+
+
 
 forScreenSize :: Geometry -> TvSpecs -> Geometry
 forScreenSize currentGeometry tv = currentGeometry{center{y=units}, radius=radius / 16.0}
@@ -70,6 +79,12 @@ forScreenSize currentGeometry tv = currentGeometry{center{y=units}, radius=radiu
   distance = spy "distance:" $ (screenWidth / 2.0) / (tan fov)
   radius = spy "radius:" $ distance / (cos 30.0)
   units = spy "units: " $ distance / 16.0
+
+
+screenWidth :: TvSpecs -> Number 
+screenWidth {screenSize, aspectRatio} = (cos diagonalDegrees) * screenSize 
+  where
+  diagonalDegrees = atan (aspectRatio.height / aspectRatio.width )
 
 
 anchorAdjusted :: Sprite -> Sprite
@@ -121,14 +136,13 @@ updateState state v = res
   _ = (unsafeLookup Chair res.sprites).isBeingDragged
 
 withinBoundaries :: SpriteMap -> Geometry -> Boolean 
-withinBoundaries sprites {width, depth} = rearInBounds 
+withinBoundaries sprites {width, depth} = rearInBounds && frontInBounds 
  -- foldl (\acc s -> acc && s.pos.y > 0.0 && s.pos.y <= depth && s.pos.x > 0.0) true []
   where 
   leftRear = footprint (unsafeLookup LeftRear sprites)
   leftFront = footprint (unsafeLookup LeftFront sprites)
-  frontInBounds = leftFront.topLeft.y >= 0.0
-  rearInBounds = leftRear.bottomLeft.y <= depth
-  _ = spy "rear:" leftRear.bottomLeft.y
+  frontInBounds = leftFront.topLeft.y >= 0.0 && leftFront.topLeft.x >= 0.0
+  rearInBounds = leftRear.bottomLeft.y <= depth && leftRear.bottomLeft.x >= 0.0
   -- ssprites = leftRear.x > 0.0 && leftRear.y + leftRear
   _ = foldl (\acc s -> s.pos.y >= -0.0 && s.pos.y <= depth) true (Map.values sprites)
 
@@ -137,13 +151,25 @@ footprint s = {topLeft, topRight, bottomLeft, bottomRight}
   where 
   bottomLeft = case s.anchor of 
     CenterNorth -> {x: s.pos.x - (s.size.x / 2.0), y: s.pos.y + s.size.y}
-    CenterSouth -> {x: s.pos.x - (s.size.x / 2.0), y: 0.0}
+    CenterSouth -> {x: s.pos.x - (s.size.x / 2.0), y: s.pos.y}
     CenterEast  -> {x: s.pos.x - s.size.x, y: s.pos.y + s.size.y / 2.0}
     CenterWest  -> {x: s.pos.x, y: s.pos.y + s.size.y / 2.0}
     _ -> {x: -1.0, y: -1.0}
   topLeft = bottomLeft :+: {x: 0.0, y: -s.size.y}
   topRight = topLeft :+: {x: s.size.x, y: 0.0}
   bottomRight = bottomLeft :+: {x: s.size.x, y: 0.0}
+
+
+collidingWithTv :: SpriteMap -> TvSpecs -> Boolean 
+collidingWithTv sprites tv = leftFront.bottomRight.x >= tvSprite.bottomLeft.x
+  where 
+  {screenSize, aspectRatio} = tv
+  leftFront = footprint (unsafeLookup LeftFront sprites)
+  tvSprite = footprint (unsafeLookup TV sprites)
+  diagonalDegrees = atan (aspectRatio.height / aspectRatio.width )
+  screenWidth = (cos diagonalDegrees) * screenSize 
+  isoWidth = (cos 30.0) * screenWidth / 16.0
+
 
 
 
@@ -261,6 +287,19 @@ translateGeometry cursorPos s state = state
 --   newCenter = center{y=(s.pos.y + (s.size.y / 2.0)) + length, x = width / 2.0}
 
 
+fieldOfView :: SpriteMap -> TvSpecs -> FOV 
+fieldOfView sprites specs = angle * 2.0
+  where 
+  halfScreenWidth = spy "half width: " $ (screenWidth specs) / 2.0 
+  center = unsafeLookup Chair sprites
+  tv = unsafeLookup TV sprites
+  distance = spy "distance is: " $ (dist center.pos tv.pos) * 16.0
+  angle = atan (halfScreenWidth / distance)
+  
+
+
+
+
 anchorXY :: Sprite -> Sprite 
 anchorXY s = s{pos=s.pos :+: (0.5 :*: {x: s.size.x, y: s.size.y})} 
 
@@ -272,6 +311,9 @@ slideSprite s delta = Right s
 layoutSprites :: SpriteMap -> Geometry -> SpriteMap 
 layoutSprites sprites geometry = Map.union updates sprites
   where 
+  -- chair = (unsafeLookup Chair sprites)
+  -- tv = (unsafeLookup TV sprites)
+  -- distToTv = dist chair.pos tv.pos
   distToTv = (cos 30.0) * geometry.radius
   tvPos = geometry.center :-: {x: 0.0, y: distToTv}
   updates = Map.fromFoldable [
@@ -288,8 +330,9 @@ translateSprites :: SpriteMap -> Vector -> SpriteMap
 translateSprites sprites v = map (\s -> s{pos=s.pos :+: v}) sprites
 
 onCenterDrag :: LocalPosition -> Sprite -> ApplicationState -> ApplicationState
-onCenterDrag cursorPos s state = if (withinBoundaries oopdated state.geometry) then state{sprites=oopdated, geometry=newCenter} else state 
--- state{sprites=oopdated}
+onCenterDrag cursorPos s state = if isDrag && (withinBoundaries oopdated state.geometry) && spy "tv collide?" (not (collidingWithTv oopdated state.tvSpecs) )
+                                 then state{sprites=oopdated, geometry=newCenter} 
+                                 else state 
   where 
   isDrag = s.isBeingDragged 
   isChair = s.id == Chair  
@@ -353,7 +396,239 @@ onDragdd cursorPos s state = state{sprites=if (withinBoundaries updatedSprties2 
               else state.geometry
   -- _ = if isDrag then spy "distance: " delta else 0.0
   -- _ = if isDrag then spy "norm: " [heading.x, heading.y] else []
-  _ = spy "within bounds?" (withinBoundaries updatedSprties2 state.geometry)
+  -- _ = spy "within bounds?" (withinBoundaries updatedSprties2 state.geometry)
+
+
+
+
+-- tl;dr: finds the reflection point between two 
+-- non-parallel points by finding where two other 
+-- triangles, drawn from points on the wall to points 
+-- between our source and dest, themselves intersect 
+-- Ascii of what we're doing: 
+--
+--       C          B
+-- x   x         x
+-- x              x
+-- x               x
+-- x                x
+-- x                 x
+-- x    D             x
+-- x   x               x  A
+--
+-- Points C and D are pictured as being away from the wall 
+-- for clarity of diagram. However, in actuality, they're points 
+-- ON the wall, and the wall is acting as a mirror. 
+firstReflection :: ReflectionPoints -> ReflectionBetweenPoints
+firstReflection {a, b, c, d, e} = {e, f, c}
+  where 
+  slopeCA = (c.y - a.y) / (c.x - a.x)
+  interceptCA = c.y - (slopeCA * c.x)
+
+  slopeEB = (e.y - b.y) / (e.x - b.x) 
+  interceptEB = e.y - (slopeEB * e.x)
+
+
+  xIntersection = (interceptEB - interceptCA) / (slopeCA - slopeEB)
+  yIntersection = (slopeCA * xIntersection) + interceptCA
+
+  -- the reflection between C and E
+  reflectionPoint = {x: b.x, y: yIntersection} 
+  f = reflectionPoint 
+
+
+
+type ReflectionBetweenPoints = {
+  e :: Vector, 
+  f :: Vector, 
+  c :: Vector
+  -- slopeCA :: Number, 
+  -- interceptCA :: Number,
+  -- slopeDB :: Number, 
+  -- interceptCA :: Number,
+}
+
+
+-- computes points a,b, and d from the starting point c 
+-- and the known angle 
+-- 
+--  (a)  (e)    (d)
+--    x   x   x
+-- (f){    x  x
+--    x  (r)x x  
+--    x      xx  <-- 30deg angle 
+--    xxxxxxxxx
+--   (b)       (c)
+figureOutPoints :: Geometry -> ReflectionPoints
+figureOutPoints geometry = {a, b, c, d, e}
+  where 
+  {center, radius, width} = geometry
+  d = center :-: {x: 0.0, y: (Math.cos (toRadians 30.0)) * radius}
+  a = d :-: {x: width / 2.0, y: 0.0}
+  c = center 
+  b = center :-: {x: width/2.0, y: 0.0}
+  e = d :-: {x: (Math.sin (toRadians 30.0)) * radius, y: 0.0}
+
+  
+figureOutPoints2 :: SpriteMap -> Geometry -> ReflectionPoints
+figureOutPoints2 sprites geometry = {a, b, c, d, e}
+  where 
+  {width, depth} = geometry
+  {center, radius} = computeGeometry sprites 
+  c = (unsafeLookup Chair sprites).pos
+  d = (unsafeLookup TV sprites).pos 
+  e = (unsafeLookup LeftFront sprites).pos 
+  a = d :+: {x: width / 2.0, y: 0.0}
+  b = c :+: {x: width/2.0, y: 0.0}
+  -- e =   d :-: {x: (sin 30.0) * radius, y: 0.0}
+
+
+-- computes points a,b, and d from the starting point c 
+-- and the known angle 
+-- 
+--       (d)  
+--        x   
+--         x   <-- 30deg angle 
+--       (r)x   
+--           x (c)
+--
+--
+--    xxxxxx^xx   
+--     (a)    (b) 
+figureOutRearReflectionPoints :: SpriteMap -> Geometry -> RearReflectionPoints
+figureOutRearReflectionPoints sprites {width, depth} = {a, b, c, d}
+  where 
+  {center, radius} = computeGeometry sprites 
+  centerChair = (unsafeLookup Chair sprites).pos
+  c = centerChair
+  d = (unsafeLookup LeftFront sprites).pos 
+  b = c :+: {x: 0.0, y: depth - centerChair.y}
+  a = {x: d.x, y: depth}
+
+
+rearReflection :: RearReflectionPoints -> ReflectionBetweenPoints
+rearReflection {a, b, c, d} = {e: d, f, c}
+  where 
+  slopeCA = (c.y - a.y) / (c.x - a.x)
+  interceptCA = c.y - (slopeCA * c.x)
+
+  slopeDB = (d.y - b.y) / (d.x - b.x) 
+  interceptEB = d.y - (slopeDB * d.x)
+
+
+  xIntersection = (interceptEB - interceptCA) / (slopeCA - slopeDB)
+  yIntersection = (slopeCA * xIntersection) + interceptCA
+
+  -- the reflection between C and E
+  reflectionPoint = {x: xIntersection, y: b.y} 
+  f = reflectionPoint 
+
+
+lineIntersection :: Position -> Position -> Position -> Position -> Position 
+lineIntersection a1 a2 b1 b2 = {x: xIntersection, y: yIntersection}
+  where 
+  slopeCA = (a2.y - a1.y) / (a2.x - a1.x)
+  interceptCA = a2.y - (slopeCA * a2.x)
+
+  slopeDB = (b2.y - b1.y) / (b2.x - b1.x) 
+  interceptEB = b2.y - (slopeDB * b2.x)
+
+  xIntersection = (interceptEB - interceptCA) / (slopeCA - slopeDB)
+  yIntersection = (slopeCA * xIntersection) + interceptCA
+
+  -- -- the reflection between C and E
+  -- reflectionPoint = {x: xIntersection, y: b.y} 
+  -- f = reflectionPoint 
+
+leftReflections :: WallInteractionPoints -> FrontReflection
+leftReflections {a, b, c, d, e, f, g, h, i, j} = {firstReflection, secondReflection, thirdReflection}
+  where 
+  firstIntersection = lineIntersection a f e b  
+  secondIntersection = lineIntersection b g f d 
+  thirdIntersection = lineIntersection b i h f 
+
+  firstReflection = {source: b, reflection: {x: a.x, y: firstIntersection.y}, dest: f}
+  secondReflection = {source: b, reflection: {x: d.x, y: secondIntersection.y}, dest: f}
+  thirdReflection = {source: b, reflection: {x: thirdIntersection.x, y: i.y}, dest: f}
+
+rightReflections :: WallInteractionPoints -> FrontReflection
+rightReflections {a, b, c, d, e, f, g, h, i, j} = {firstReflection, secondReflection, thirdReflection}
+  where 
+  firstIntersection = lineIntersection c g f d   
+  secondIntersection = lineIntersection e c a f 
+  thirdIntersection = lineIntersection c i j f 
+
+  firstReflection = {source: c, reflection: {x: d.x, y: firstIntersection.y}, dest: f}
+  secondReflection = {source: c, reflection: {x: a.x, y: secondIntersection.y}, dest: f}
+  thirdReflection = {source: c, reflection: {x: thirdIntersection.x, y: i.y}, dest: f}
+
+
+type ReflectionPoints = {
+  a :: Vector, 
+  b :: Vector, 
+  c :: Vector, 
+  d :: Vector, 
+  e :: Vector
+}
+
+
+type RearReflectionPoints = {
+  a :: Position, 
+  b :: Position, 
+  c :: Position, 
+  d :: Position 
+}
+
+type LineSegment = {p1 :: Vector, p2 :: Vector}
+
+--
+--
+--   a     b       c      d
+--   o     o       o      o
+--   |      \     /       |
+--   |       \   /        |
+--   |        \ /         |
+-- e o         o          o g
+--   |         f          |
+--   |                    |
+--   +-----o---o---o------+
+--         h   i   j
+-- 
+collectReflectionPoints :: SpriteMap -> Geometry -> WallInteractionPoints 
+collectReflectionPoints sprites {width, depth} = {a, b, c, d, e, f, g, h, i, j}
+  where 
+  f = (unsafeLookup Chair sprites).pos
+  b = (unsafeLookup LeftFront sprites).pos 
+  c = (unsafeLookup RightFront sprites).pos 
+  a = {x: 0.0, y: b.y}
+  d = {x: width, y: b.y}
+  e = {x: 0.0, y: f.y}
+  g = {x: width, y: f.y}
+  h = {x: b.x, y: depth}
+  i = {x: f.x, y: depth}
+  j = {x: c.x, y: depth}
+
+
+type WallInteractionPoints = {
+  a :: Position, 
+  b :: Position, 
+  c :: Position, 
+  d :: Position, 
+  e :: Position,
+  f :: Position, 
+  g :: Position, 
+  h :: Position, 
+  i :: Position, 
+  j :: Position
+}
+
+
+
+type FrontReflection = {
+ firstReflection :: {source :: Position, reflection :: Position, dest :: Position},
+ secondReflection :: {source :: Position, reflection :: Position, dest :: Position},
+ thirdReflection :: {source :: Position, reflection :: Position, dest :: Position}
+}
 
 
 
