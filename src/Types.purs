@@ -103,10 +103,12 @@ type Images = {
 }
 
 type FormFields = {
+  mode :: SelectField,
   roomWidth :: NumericField, 
   roomDepth :: NumericField, 
-  channels :: SelectField
-
+  channels :: SelectField,
+  screenSize :: NumericField, 
+  aspectRatio :: SelectField
 }
 
 type TvSpecs = {
@@ -121,7 +123,7 @@ type ApplicationState = {
   form :: FormFields
 }
 
-data FormID = Channels | Width | Depth
+data FormID = Channels | Width | Depth | ScreenSize | AspectRatio | SimulationMode
 
 data AudioChannels 
     = Channels2_0

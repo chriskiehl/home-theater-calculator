@@ -31,24 +31,53 @@ import Renderer as CanvasRenderer
 import SimulationCanvas (mainCanvas)
 import Sprites as Sprites
 import Type.Proxy (Proxy(..))
-import Types (Action(..), AnchorPosition(..), ApplicationState, AudioChannels(..), FormField, FormID(..), Geometry, NumericField, SelectField, SpriteID(..), TextField, TvSpecs)
+import Types (Action(..), AnchorPosition(..), ApplicationState, AudioChannels(..), FormField, FormID(..), Geometry, NumericField, SelectField, SpriteID(..), TextField, TvSpecs, AspectRatio)
 import Unsafe.Coerce (unsafeCoerce)
 import Utils (unsafeLookup)
 
+initialWidth = 13
+initialDepth = 15
+initialScreenSize = 50
+
 initialGeometry :: Geometry
 initialGeometry = {
-  width: 15.0, 
-  depth: 15.0, 
-  radius: 8.0, 
+  width: toNumber initialWidth, 
+  depth: toNumber initialDepth, 
+  radius: 90000.0, 
   center: {x: 15.0/2.0, y: 1.0}
 }
 
 defaultSpecs :: TvSpecs
 defaultSpecs = {
-  screenSize: 60.0, 
+  screenSize: toNumber initialScreenSize,
   aspectRatio: {width: 16.0, height: 9.0}
 }
 
+-- theaterOptions = {
+--   fields: [Width, Depth],
+--   homeTheater +
+-- }
+
+{-
+
+Studio: 
+ - limit 2 channels 
+  - no collision on rear or center
+  - no tv collision
+  - center movement keeps speakers inline with "tv" (even though not visible)
+ - only width/depth options in form 
+
+Theater: 
+ - all options 
+ - 2.0 mode: 
+  - collision on fronts
+  - collision on tv 
+  - center movement keeps speakers inline with tv
+    - i.e. radius is computed as a cos 30deg angle 
+ - 5.0 mode: 
+  - collision on front, center, rear, and TV 
+  - center movement treats tv as radius and adjust speakers accordingly. 
+-}
 
 initialState :: ApplicationState
 initialState = {
@@ -63,16 +92,20 @@ initialState = {
   geometry: Core.forScreenSize initialGeometry defaultSpecs,
   tvSpecs: defaultSpecs,
   form: {
-    roomWidth: {id: Width, value: 12, error: Nothing},
-    roomDepth: {id: Depth, value: 16, error: Nothing},
-    channels: {id: Channels, value: "2.0", error: Nothing, options: ["2.0", "2.1", "5.1"]}
+    mode: {id: SimulationMode, value: "Home Theater", error: Nothing, options: ["Home Theater", "Studio"]},
+    roomWidth: {id: Width, value: initialWidth, error: Nothing},
+    roomDepth: {id: Depth, value: initialDepth, error: Nothing},
+    channels: {id: Channels, value: "2.0", error: Nothing, options: ["2.0", "2.1", "5.1"]},
+    screenSize: {id: ScreenSize, value: initialScreenSize, error: Nothing},
+    aspectRatio: {id: AspectRatio, value: "16:9", error: Nothing, options: ["16:9", "2.4:1"]}
   }
 }
 
 
 reducer :: ApplicationState -> Action -> ApplicationState 
 reducer state action = case action of 
-  UpdateField id value -> Core.repositionSprites $ Core.updateField state id value 
+  UpdateField id value -> Core.baselineXPosition $ Core.updateField state id value 
+  -- UpdateField id value -> Core.repositionSprites $ Core.updateField state id value 
   MouseDown pos -> Core.handleMouseDown state pos 
   MouseUp pos -> Core.updateSprites (\s -> s{isBeingDragged=false, image=s.images.normal}) state 
   MouseMove pos -> 
@@ -89,7 +122,8 @@ application = do
   envRef <- spy "again?" $ Refs.new Nothing -- {canvas: Nothing, ctx: Nothing}
   reducer' <- mkReducer reducer 
   component "Reducer" \_ -> React.do
-    state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x: 0.0, y: 1.0}} reducer'
+    state /\ dispatch <- useReducer (Core.fromConfig initialState) reducer'
+    -- state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x: 0.0, y: 1.0}} reducer'
     -- state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x:0.0, y:1.0}} reducer'
     -- state /\ dispatch <- useReducer initialState reducer'
 
@@ -114,12 +148,11 @@ application = do
 
     useLayoutEffect state $ unsafePartial do 
       env <- Refs.read envRef 
-      -- let _ = spy "useEffectStartNormal?" $ (unsafeLookup Chair state.sprites).image == (unsafeLookup Chair state.sprites).images.normal
       -- Ok. Now evident that I don't know how things get executed. *Hours* lost on this line 
       -- because when the <- is not there, it seemed to execute with an n-1 
       -- view of the state, rather than the actual current state, which leads to 
       -- absolutely bonkers behavior (like all hover behaviors being inverted)
-      -- finally traced it back to this like. Baffling.. 
+      -- finally traced it back to this. Baffling.. 
       _ <- case env of 
         Just context -> CanvasRenderer.render context.ctx state
         Nothing -> pure unit 

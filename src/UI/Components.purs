@@ -35,6 +35,20 @@ type FormProps = {
 homeTheaterForm :: FormProps -> JSX
 homeTheaterForm {dispatch, fields} = do 
   R.form_ [
+    R.div_ [
+      R.div_ (fields.mode.options # map \option -> 
+        R.label_ [
+          R.input {
+            type: "radio", 
+            name: "mode", 
+            value: option, 
+            checked: option == fields.mode.value,
+            onClick: handler getValue (\e -> dispatch (UpdateField fields.mode.id option))
+          },
+          R.text option
+        ]
+      )
+    ],
     R.div_ [ 
       R.label_ [ 
         R.text "Channels",
@@ -60,6 +74,28 @@ homeTheaterForm {dispatch, fields} = do
           onChange: handler getValue (\e -> dispatch (UpdateField fields.roomDepth.id e)),
           style: (css {width: 80})}
       ]}
+    ],
+
+    R.div_ [
+      R.div {style: (css {display: "inline"}), children: [
+        R.text "Screen Size (diagonal): ",
+        R.input {
+          type: "number",  
+          value: show fields.screenSize.value, 
+          className: if isJust fields.screenSize.error then "error" else "",
+          onChange: handler getValue (\e -> dispatch (UpdateField fields.screenSize.id e)),
+          style: (css {width: 80})
+        }
+      ]}
+    ],
+    R.div_ [
+      R.label_ [ 
+        R.text "Aspect Ratio",
+        R.select {
+          onChange: handler getValue (\e -> dispatch (UpdateField fields.aspectRatio.id e)),
+          children: (makeOption fields.aspectRatio) <$> fields.aspectRatio.options
+        }
+      ]
     ]
   ]
 ]

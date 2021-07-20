@@ -36,3 +36,10 @@ canvasPosition = unsafeEventFn \e ->
   in {x: client.x - rect.left, y: client.y - rect.top} 
   
 
+-- | Compose two monadic functions together. 
+-- | this surely exists, but I cannot find it :| 
+compMonad :: forall a b c m. Monad m => (a -> m b) -> (b -> m c) -> (a -> m c)
+compMonad f g = (\x -> (f x) >>= g)
+
+infix 5 compMonad as .<<.  
+

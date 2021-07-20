@@ -4,7 +4,7 @@ module Debugging where
 
 import Prelude
 
-import Core (FrontReflection, ReflectionPoints, WallInteractionPoints, firstReflection, toIso)
+import Core (FrontReflection, ReflectionPoints, WallInteractionPoints, toIso)
 import Core as Core
 import Data.Foldable (foldl, for_)
 import Data.List (List)
@@ -86,59 +86,6 @@ traceActualTvSize ctx state = do
 
 
 
-drawFirstReflections :: Context2D -> ApplicationState -> Effect Unit 
-drawFirstReflections ctx state = do 
-  let {center, radius} = (Core.computeGeometry state.sprites)
-  let points = Core.firstReflection $ Core.figureOutPoints2 state.sprites state.geometry{center=center, radius=radius}
-  let ePos = Core.toIso points.e 
-  let fPos = Core.toIso points.f 
-  let cPos = Core.toIso points.c 
-  Canvas.beginPath ctx 
-  Canvas.setStrokeStyle ctx "black"
-  Canvas.setLineWidth ctx 5.0
-  Canvas.moveTo ctx ePos.x ePos.y  
-  Canvas.lineTo ctx fPos.x fPos.y 
-  Canvas.lineTo ctx cPos.x cPos.y 
-  Canvas.stroke ctx 
-  Canvas.closePath ctx
-
-  Canvas.beginPath ctx 
-  Canvas.setStrokeStyle ctx "white"
-  Canvas.setLineWidth ctx 3.0
-  Canvas.moveTo ctx ePos.x ePos.y  
-  Canvas.lineTo ctx fPos.x fPos.y 
-  Canvas.lineTo ctx cPos.x cPos.y 
-  Canvas.stroke ctx 
-  Canvas.closePath ctx
-  Canvas.setLineDash ctx []
-
-
-drawRearReflections :: Context2D -> ApplicationState -> Effect Unit 
-drawRearReflections ctx state = do 
-  let {center, radius} = (Core.computeGeometry state.sprites)
-  let points = Core.rearReflection $ Core.figureOutRearReflectionPoints state.sprites state.geometry{center=center, radius=radius}
-  let ePos = Core.toIso points.e 
-  let fPos = Core.toIso points.f 
-  let cPos = Core.toIso points.c 
-  Canvas.beginPath ctx 
-  Canvas.setStrokeStyle ctx "black"
-  Canvas.setLineWidth ctx 5.0
-  Canvas.moveTo ctx ePos.x ePos.y  
-  Canvas.lineTo ctx fPos.x fPos.y 
-  Canvas.lineTo ctx cPos.x cPos.y 
-  Canvas.stroke ctx 
-  Canvas.closePath ctx
-
-  Canvas.beginPath ctx 
-  Canvas.setStrokeStyle ctx "white"
-  
-  Canvas.setLineWidth ctx 3.0
-  Canvas.moveTo ctx ePos.x ePos.y  
-  Canvas.lineTo ctx fPos.x fPos.y 
-  Canvas.lineTo ctx cPos.x cPos.y 
-  Canvas.stroke ctx 
-  Canvas.closePath ctx
-  Canvas.setLineDash ctx []
 
 drawAllReflectionsBy :: (WallInteractionPoints -> FrontReflection) -> Context2D -> ApplicationState -> Effect Unit 
 drawAllReflectionsBy f ctx state = do 

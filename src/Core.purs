@@ -14,8 +14,8 @@ import Data.Tuple (Tuple(..))
 import Debug (spy)
 import Math as Math
 import ParseInt (parseBase10, parseInt)
-import Types (AnchorPosition(..), ApplicationState, AudioChannels(..), Degree, FOV, FormID(..), Geometry, LocalPosition, Position, ScreenSize, Sprite, SpriteID(..), SpriteMap, TvSpecs)
-import Utils (unsafeLookup)
+import Types (AnchorPosition(..), ApplicationState, AudioChannels(..), Degree, FOV, FormID(..), Geometry, LocalPosition, Position, ScreenSize, Sprite, SpriteID(..), SpriteMap, TvSpecs, AspectRatio)
+import Utils (unsafeLookup, (.<<.))
 import Vector (Matrix2D, Vector, norm, (:**:), (:*:), (:+:), (:-:))
 
 origin :: Position 
@@ -28,6 +28,12 @@ parseChannel s = case s of
   "5.1" -> Just Channels5_1
   _ -> Nothing 
 
+
+parseAspectRatio :: String -> Maybe AspectRatio
+parseAspectRatio ratio = case ratio of 
+  "16:9" -> Just {width: 16.0, height: 9.0}
+  "2.4:1" -> Just {width: 2.4, height: 1.0}
+  _ -> Nothing
 
 betweenZeroAndTwoHundred :: Int -> Maybe Int 
 betweenZeroAndTwoHundred x = if x > 0 && x < 200 then Just x else Nothing 
@@ -43,19 +49,35 @@ parseRoomDimension = parseBase10 .<<. betweenZeroAndTwoHundred
 -- Thus: the repeated boilerplate below. 
 updateField :: ApplicationState -> FormID -> String -> ApplicationState
 updateField state id value = case id of 
+  SimulationMode -> state{form{mode{value=value}}} 
   Channels -> case (parseChannel value) of 
     Just _ -> state{form{channels{value=value}}}
     Nothing -> state{form{channels{error=Just "Invalid input"}}}
   Width -> case (parseRoomDimension value) of 
-    Just width -> state{form{roomWidth{value=width}}, geometry{width=(toNumber width), center{x=((toNumber width) / 2.0)}}}
+    Just width -> state{form{roomWidth{value=width}}, geometry{width=(toNumber width)}}
     Nothing -> state{form{roomWidth{error=Just "Must be a valid number!"}}}
   Depth -> case (parseRoomDimension value) of 
-    Just width -> state{form{roomDepth{value=width}}, geometry{depth=(toNumber width)}}
+    Just depth -> state{form{roomDepth{value=depth}}, geometry{depth=(toNumber depth)}}
     Nothing -> state{form{roomDepth{error=Just "Must be a valid number!"}}}
+  ScreenSize -> case (parseBase10 value) of 
+    Just newSize -> state{form{screenSize{value=newSize}}, tvSpecs{screenSize=toNumber newSize}}
+    Nothing -> state{form{screenSize{error=Just "Must be a valid number"}}}
+  AspectRatio -> case (parseAspectRatio value) of 
+    Just newRatio -> state{form{aspectRatio{value=value}}, tvSpecs{aspectRatio=newRatio}}
+    Nothing -> state{form{aspectRatio{error=Just "Unknown aspect ratio"}}}
+
+
+
+baselineXPosition :: ApplicationState -> ApplicationState 
+baselineXPosition state = state{sprites=nextSprites} 
+  where 
+  delta = (state.geometry.width / 2.0) - (unsafeLookup Chair state.sprites).pos.x 
+  nextSprites = translateSprites state.sprites {x: delta, y: 0.0}
 
 
 spriteInBounds :: LocalPosition -> Sprite -> Boolean 
 spriteInBounds pos s = inBoundsDebug (localToIso pos) s
+
 
 centerX :: SpriteMap -> Geometry -> SpriteMap 
 centerX sprites {width} = translateSprites sprites {x: delta, y: 0.0}
@@ -81,30 +103,20 @@ forScreenSize currentGeometry tv = currentGeometry{center{y=units}, radius=radiu
   units = spy "units: " $ distance / 16.0
 
 
+-- | computes the horizontal width of the screen from 
+-- | the diagonal and aspect ratio. 
 screenWidth :: TvSpecs -> Number 
 screenWidth {screenSize, aspectRatio} = (cos diagonalDegrees) * screenSize 
-  where
-  diagonalDegrees = atan (aspectRatio.height / aspectRatio.width )
+  where 
+  diagonalDegrees = atan (aspectRatio.height / aspectRatio.width) 
 
 
-anchorAdjusted :: Sprite -> Sprite
-anchorAdjusted s = case s.anchor of 
-  CenterEast -> anchorCenterEast s
-  CenterWest -> anchorCenterWest s 
-  CenterNorth -> anchorCenterNorth s 
-  CenterSouth -> anchorCenterSouth s 
-  Bottom -> anchorBottom s 
-  LogicalOrigin -> s{pos=s.pos :-: s.originOffset}
-  _ -> s 
+
 
 
 
 setDragging :: LocalPosition -> Sprite -> Sprite 
 setDragging pos s = s{isBeingDragged=true, clickOffset=(localToIso pos) :-: s.pos}
-  -- where 
-  -- _ = spy "[cart] cursor pos: " [pos.x, pos.y]
-  -- _ = spy "[Iso] cursor pos: " [(localToIso pos).x, (localToIso pos).y]
-  -- _ = spy "[Iso] sprite pos: " [s.pos.x, s.pos.y]
 
 
 handleMouseDown :: ApplicationState -> LocalPosition -> ApplicationState 
@@ -128,12 +140,14 @@ updateSprites_ :: Sprite -> (Sprite -> Sprite) -> ApplicationState -> Applicatio
 updateSprites_ sprite_ f state = updateSprites (\s -> if s.id == target.id then f s else s) state 
   where target = sprite_
 
+
 updateState :: ApplicationState -> Vector -> ApplicationState
 updateState state v = res 
   where 
   sprites = Map.values state.sprites
   res = foldl (\acc s -> updateFuck acc (unsafeLookup s.id acc.sprites) v) state sprites 
   _ = (unsafeLookup Chair res.sprites).isBeingDragged
+
 
 withinBoundaries :: SpriteMap -> Geometry -> Boolean 
 withinBoundaries sprites {width, depth} = rearInBounds && frontInBounds 
@@ -145,6 +159,7 @@ withinBoundaries sprites {width, depth} = rearInBounds && frontInBounds
   rearInBounds = leftRear.bottomLeft.y <= depth && leftRear.bottomLeft.x >= 0.0
   -- ssprites = leftRear.x > 0.0 && leftRear.y + leftRear
   _ = foldl (\acc s -> s.pos.y >= -0.0 && s.pos.y <= depth) true (Map.values sprites)
+
 
 footprint :: Sprite -> {topLeft :: Position, topRight :: Position, bottomLeft :: Position, bottomRight :: Position}
 footprint s = {topLeft, topRight, bottomLeft, bottomRight}   
@@ -183,23 +198,6 @@ computeGeometry sprites = {center: center chair, radius: hypotenuse}
   hypotenuse =  Math.sqrt $ (distance*distance) + (horizontalDistance * horizontalDistance)
 
 
-repositionSprites :: ApplicationState -> ApplicationState 
-repositionSprites state = state{sprites=Map.union updates state.sprites}
-  where 
-  sprites = state.sprites
-  geometry = state.geometry 
-  distToTv = (cos 30.0) * geometry.radius
-  tvPos = geometry.center :-: {x: 0.0, y: distToTv}
-  updates = Map.fromFoldable [
-    Tuple Chair $ (unsafeLookup Chair sprites){pos=geometry.center},
-    Tuple TV    $ (unsafeLookup TV sprites){pos=tvPos},
-    -- Tuple Center    $ centerXY (unsafeLookup Center sprites){pos=geometry.center :-: {x: 0.0, y: geometry.radius}},
-    Tuple LeftFront $ positionSprite (unsafeLookup LeftFront sprites) geometry (-30.0),
-    Tuple RightFront $ positionSprite (unsafeLookup RightFront sprites) geometry (30.0),
-    Tuple RightRear $ positionSprite (unsafeLookup RightRear sprites) geometry (110.0),
-    Tuple LeftRear $ positionSprite (unsafeLookup LeftRear sprites) geometry (-110.0)
-    -- Tuple LeftRear $ positionSprite (unsafeLookup RightFront sprites) geometry (90.0)
-  ]
 
 positionSprite :: Sprite -> Geometry -> Number -> Sprite 
 positionSprite sprite {center, radius} degrees = sprite{pos=targetPos}
@@ -239,29 +237,6 @@ onHoverr cursorPos s state = state{sprites=Map.insert s.id updatedSprite state.s
 
 center :: Sprite -> Vector 
 center s = s.pos :+: {x: s.size.x / 2.0, y: 0.0}
-
-recenterGeometry :: LocalPosition -> Sprite -> ApplicationState -> ApplicationState
-recenterGeometry _ s state = if s.isBeingDragged then state{geometry{center=(anchorXY s).pos, radius=newRadius}} else state 
-  where 
-  cc = (center s)
-  {center, radius} = state.geometry
-  length = (Math.cos (toRadians 30.0)) * radius
-  d = center :-: (anchorXY s).pos 
-  newLength = length + (-d.y)
-  newRadius = newLength / (Math.cos (toRadians 30.0)) --cc.y / (Math.cos (toRadians 30.0))
-  -- _ = if s.isBeingDragged then Trace.spy "new radius: " newRadius else newRadius 
-
-
-recenterGeometry2 :: Sprite -> Geometry -> Geometry
-recenterGeometry2 s geometry = if s.isBeingDragged then geometry{center=(anchorXY s).pos, radius=newRadius} else geometry
-  where 
-  cc = (center s)
-  {center, radius} = geometry
-  length = (Math.cos (toRadians 30.0)) * radius
-  d = center :-: (anchorXY s).pos 
-  newLength = length + (-d.y)
-  newRadius = newLength / (Math.cos (toRadians 30.0)) --cc.y / (Math.cos (toRadians 30.0))
-  -- _ = if s.isBeingDragged then Trace.spy "new radius: " newRadius else newRadius 
 
 
 dist :: Vector -> Vector -> Number 
@@ -304,9 +279,68 @@ anchorXY :: Sprite -> Sprite
 anchorXY s = s{pos=s.pos :+: (0.5 :*: {x: s.size.x, y: s.size.y})} 
 
 
-slideSprite :: Sprite -> Number -> Either String Sprite 
-slideSprite s delta = Right s 
   
+
+
+fromConfig ::ApplicationState -> ApplicationState
+fromConfig state = state{sprites=updates}
+  where 
+  sprites = state.sprites 
+  {width, depth} = state.geometry
+  screenHorizontal = screenWidth state.tvSpecs 
+  fov = 20.0 
+  distance = spy "distance:" $ (screenHorizontal / 2.0) / (tan fov)
+  radius = spy "radius:" $ (distance / (cos 30.0)) / 16.0
+  units = spy "units: " $ distance / 16.0
+
+  center = {x: width/2.0, y: units + 1.0}
+  tv = {x: width / 2.0, y: 1.0}
+
+  distToTv = dist center tv
+  -- radius = distToTv / (cos 30.0)
+  -- distToTv = (cos 30.0) * geometry.radius
+  -- tvPos = geometry.center :-: {x: 0.0, y: distToTv}
+  updates = Map.fromFoldable [
+    Tuple Chair (unsafeLookup Chair sprites){pos=center},
+    Tuple TV    (unsafeLookup TV sprites){pos=tv},
+    -- Tuple Center    $ centerXY (unsafeLookup Center sprites){pos=geometry.center :-: {x: 0.0, y: geometry.radius}},
+    Tuple LeftFront $ positionSpriteNEW (unsafeLookup LeftFront sprites) {center, radius} (-30.0),
+    Tuple RightFront $ positionSpriteNEW (unsafeLookup RightFront sprites) {center, radius} (30.0),
+    Tuple RightRear $ positionSpriteNEW (unsafeLookup RightRear sprites) {center, radius} (110.0),
+    Tuple LeftRear $ positionSpriteNEW (unsafeLookup LeftRear sprites) {center, radius} (-110.0)
+  ]    
+
+
+
+
+layoutSpeakers :: SpriteMap -> SpriteMap 
+layoutSpeakers sprites = Map.union updates sprites
+  where 
+  chair = (unsafeLookup Chair sprites)
+  center = chair.pos
+  tv = (unsafeLookup TV sprites)
+  distToTv = dist chair.pos tv.pos
+  radius = distToTv / (cos 30.0)
+  -- distToTv = (cos 30.0) * geometry.radius
+  -- tvPos = geometry.center :-: {x: 0.0, y: distToTv}
+  updates = Map.fromFoldable [
+    -- Tuple Chair $ (unsafeLookup Chair sprites){pos=geometry.center},
+    -- Tuple TV    $ (unsafeLookup TV sprites){pos=tvPos},
+    -- Tuple Center    $ centerXY (unsafeLookup Center sprites){pos=geometry.center :-: {x: 0.0, y: geometry.radius}},
+    Tuple LeftFront $ positionSpriteNEW (unsafeLookup LeftFront sprites) {center, radius} (-30.0),
+    Tuple RightFront $ positionSpriteNEW (unsafeLookup RightFront sprites) {center, radius} (30.0),
+    Tuple RightRear $ positionSpriteNEW (unsafeLookup RightRear sprites) {center, radius} (110.0),
+    Tuple LeftRear $ positionSpriteNEW (unsafeLookup LeftRear sprites) {center, radius} (-110.0)
+  ]    
+
+
+positionSpriteNEW :: Sprite -> {center::Position, radius:: Number} -> Number -> Sprite 
+positionSpriteNEW sprite {center, radius} degrees = sprite{pos=targetPos}
+  where 
+  forwardVector = {x: 0.0, y: -radius} 
+  rotatedVector = rotate forwardVector degrees 
+  targetPos = rotatedVector :+: center
+
 
 layoutSprites :: SpriteMap -> Geometry -> SpriteMap 
 layoutSprites sprites geometry = Map.union updates sprites
@@ -401,43 +435,6 @@ onDragdd cursorPos s state = state{sprites=if (withinBoundaries updatedSprties2 
 
 
 
--- tl;dr: finds the reflection point between two 
--- non-parallel points by finding where two other 
--- triangles, drawn from points on the wall to points 
--- between our source and dest, themselves intersect 
--- Ascii of what we're doing: 
---
---       C          B
--- x   x         x
--- x              x
--- x               x
--- x                x
--- x                 x
--- x    D             x
--- x   x               x  A
---
--- Points C and D are pictured as being away from the wall 
--- for clarity of diagram. However, in actuality, they're points 
--- ON the wall, and the wall is acting as a mirror. 
-firstReflection :: ReflectionPoints -> ReflectionBetweenPoints
-firstReflection {a, b, c, d, e} = {e, f, c}
-  where 
-  slopeCA = (c.y - a.y) / (c.x - a.x)
-  interceptCA = c.y - (slopeCA * c.x)
-
-  slopeEB = (e.y - b.y) / (e.x - b.x) 
-  interceptEB = e.y - (slopeEB * e.x)
-
-
-  xIntersection = (interceptEB - interceptCA) / (slopeCA - slopeEB)
-  yIntersection = (slopeCA * xIntersection) + interceptCA
-
-  -- the reflection between C and E
-  reflectionPoint = {x: b.x, y: yIntersection} 
-  f = reflectionPoint 
-
-
-
 type ReflectionBetweenPoints = {
   e :: Vector, 
   f :: Vector, 
@@ -447,63 +444,6 @@ type ReflectionBetweenPoints = {
   -- slopeDB :: Number, 
   -- interceptCA :: Number,
 }
-
-
--- computes points a,b, and d from the starting point c 
--- and the known angle 
--- 
---  (a)  (e)    (d)
---    x   x   x
--- (f){    x  x
---    x  (r)x x  
---    x      xx  <-- 30deg angle 
---    xxxxxxxxx
---   (b)       (c)
-figureOutPoints :: Geometry -> ReflectionPoints
-figureOutPoints geometry = {a, b, c, d, e}
-  where 
-  {center, radius, width} = geometry
-  d = center :-: {x: 0.0, y: (Math.cos (toRadians 30.0)) * radius}
-  a = d :-: {x: width / 2.0, y: 0.0}
-  c = center 
-  b = center :-: {x: width/2.0, y: 0.0}
-  e = d :-: {x: (Math.sin (toRadians 30.0)) * radius, y: 0.0}
-
-  
-figureOutPoints2 :: SpriteMap -> Geometry -> ReflectionPoints
-figureOutPoints2 sprites geometry = {a, b, c, d, e}
-  where 
-  {width, depth} = geometry
-  {center, radius} = computeGeometry sprites 
-  c = (unsafeLookup Chair sprites).pos
-  d = (unsafeLookup TV sprites).pos 
-  e = (unsafeLookup LeftFront sprites).pos 
-  a = d :+: {x: width / 2.0, y: 0.0}
-  b = c :+: {x: width/2.0, y: 0.0}
-  -- e =   d :-: {x: (sin 30.0) * radius, y: 0.0}
-
-
--- computes points a,b, and d from the starting point c 
--- and the known angle 
--- 
---       (d)  
---        x   
---         x   <-- 30deg angle 
---       (r)x   
---           x (c)
---
---
---    xxxxxx^xx   
---     (a)    (b) 
-figureOutRearReflectionPoints :: SpriteMap -> Geometry -> RearReflectionPoints
-figureOutRearReflectionPoints sprites {width, depth} = {a, b, c, d}
-  where 
-  {center, radius} = computeGeometry sprites 
-  centerChair = (unsafeLookup Chair sprites).pos
-  c = centerChair
-  d = (unsafeLookup LeftFront sprites).pos 
-  b = c :+: {x: 0.0, y: depth - centerChair.y}
-  a = {x: d.x, y: depth}
 
 
 rearReflection :: RearReflectionPoints -> ReflectionBetweenPoints
@@ -622,8 +562,6 @@ type WallInteractionPoints = {
   j :: Position
 }
 
-
-
 type FrontReflection = {
  firstReflection :: {source :: Position, reflection :: Position, dest :: Position},
  secondReflection :: {source :: Position, reflection :: Position, dest :: Position},
@@ -656,6 +594,19 @@ rotate v angle = v :**: a
   where 
   a = {a1: cos angle,    a2: sin angle,
        b1: -(sin angle), b2: cos angle}
+
+
+-- | returns a version of the sprite with its anchor 
+-- | point locked to its logical position  
+anchorAdjusted :: Sprite -> Sprite
+anchorAdjusted s = case s.anchor of 
+  CenterEast -> anchorCenterEast s
+  CenterWest -> anchorCenterWest s 
+  CenterNorth -> anchorCenterNorth s 
+  CenterSouth -> anchorCenterSouth s 
+  Bottom -> anchorBottom s 
+  LogicalOrigin -> s{pos=s.pos :-: s.originOffset}
+  _ -> s 
 
 
 centerXY :: Sprite -> Sprite
@@ -739,6 +690,17 @@ inBounds4 cursorPos s = inBounds3 (localToIso cursorPos) s
 inBounds3 :: Vector -> Sprite -> Boolean 
 inBounds3 cursorPos s = inBounds2 cursorPos s{pos=s.pos :-: {x: s.size.z, y: s.size.z}}
 
+
+--
+--              +----+
+--              |    |\ upper edge
+--              |    | \
+--              +----+  \
+--              \     \ |
+--         -->   \     \|
+--  lower edge    \_____\
+-- 
+--
 inBounds2 :: Vector -> Sprite -> Boolean 
 inBounds2 pos fullSprite = (pos.x > sprite.x
                         && pos.x < sprite.x + (width + depth)
@@ -760,23 +722,7 @@ inBounds2 pos fullSprite = (pos.x > sprite.x
   -- y-mx=b
   upperIntercept =  sprite.y - (sprite.x + width)
 
-  s = sprite 
-  p = pos
-  -- _ = spy "s: " [p.x, p.y]
-  -- _ = if fullSprite.id == Chair then spy "chair?" [s.x, s.y, p.x, p.y] else [-1.0, -1.0, -1.0, -1.0]
-
-
-inBounds :: Vector -> Vector -> Boolean 
-inBounds pos actor = pos.x > actor.x 
-                      && pos.x < actor.x + 1.0 
-                      && pos.y > actor.y 
-                      && pos.y < actor.y + 1.0
 
 
 
--- | Compose two monadic functions together. 
--- | this surely exists, but I cannot find it :| 
-compMonad :: forall a b c m. Monad m => (a -> m b) -> (b -> m c) -> (a -> m c)
-compMonad f g = (\x -> (f x) >>= g)
 
-infix 5 compMonad as .<<.

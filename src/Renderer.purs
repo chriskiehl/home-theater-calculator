@@ -13,7 +13,7 @@ import Data.Map as M
 import Data.Maybe (fromMaybe)
 import Data.Number.Format (fixed, toStringWith)
 import Debug (spy)
-import Debugging (drawAllReflections, drawFirstReflections, drawRearReflections, highlightHitboxes, outlineFootprint, traceActualTvSize)
+import Debugging (drawAllReflections, highlightHitboxes, outlineFootprint, traceActualTvSize)
 import Effect (Effect)
 import Effect.Ref (Ref)
 import Effect.Ref as Refs
