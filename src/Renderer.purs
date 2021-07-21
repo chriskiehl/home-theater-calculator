@@ -5,6 +5,7 @@ import Prelude
 import CanvasSupport (fromDataSource)
 import Core (anchorCenterEast, anchorCenterSouth, anchorCenterWest)
 import Core as Core
+import Data.Array (fromFoldable)
 import Data.Array as Array
 import Data.Foldable (for_)
 import Data.Int (fromNumber, toNumber)
@@ -62,6 +63,7 @@ tilebackground ctx = do
 renderSprites :: Context2D -> ApplicationState -> Effect Unit 
 renderSprites ctx state = do 
   -- let _ = spy "renderSpritesBefore?" $ (unsafeLookup Chair state.sprites).image == (unsafeLookup Chair state.sprites).images.normal
+  -- let _ = spy "all dragging?" $ fromFoldable $ map (\s -> s.images.normal == s.image) (M.values state.sprites)
   for_ (reverse (sortBy (\a b -> compare b.pos.x a.pos.x ) (M.values state.sprites))) \s -> 
     let sprt = Core.anchorAdjusted s
         -- cdd  = spy "renderSpritesNormal?" $ s.image == s.images.normal 

@@ -4,12 +4,13 @@ module Debugging where
 
 import Prelude
 
-import Core (FrontReflection, ReflectionPoints, WallInteractionPoints, toIso)
+import Core (WallInteractionPoints, PrimaryReflections, toIso)
 import Core as Core
 import Data.Foldable (foldl, for_)
 import Data.List (List)
 import Data.Map as Map
 import Debug (spy)
+import DegreeMath (atan, cos)
 import Effect (Effect)
 import Graphics.Canvas (Context2D)
 import Graphics.Canvas as Canvas
@@ -69,9 +70,9 @@ traceActualTvSize ctx state = do
   let {screenSize, aspectRatio} = state.tvSpecs 
   let leftFront = Core.footprint (unsafeLookup LeftFront state.sprites)
   let tv = (unsafeLookup TV state.sprites)
-  let diagonalDegrees = Core.atan (aspectRatio.height / aspectRatio.width )
-  let screenWidth = (Core.cos diagonalDegrees) * screenSize 
-  let isoWidth = ((Core.cos 30.0) * screenWidth )
+  let diagonalDegrees = atan (aspectRatio.height / aspectRatio.width )
+  let screenWidth = (cos diagonalDegrees) * screenSize 
+  let isoWidth = ((cos 30.0) * screenWidth )
   let halfIsoWidth = (isoWidth / 2.0) / 16.0
   let pos = toIso (tv.pos)
   let pos2 = toIso (tv.pos :-: {x: halfIsoWidth, y: 0.0})
@@ -87,10 +88,9 @@ traceActualTvSize ctx state = do
 
 
 
-drawAllReflectionsBy :: (WallInteractionPoints -> FrontReflection) -> Context2D -> ApplicationState -> Effect Unit 
+drawAllReflectionsBy :: (WallInteractionPoints -> PrimaryReflections) -> Context2D -> ApplicationState -> Effect Unit 
 drawAllReflectionsBy f ctx state = do 
-  let {center, radius} = (Core.computeGeometry state.sprites)
-  let {firstReflection, secondReflection, thirdReflection} = f $ Core.collectReflectionPoints state.sprites state.geometry{center=center, radius=radius}
+  let {firstReflection, secondReflection, thirdReflection} = f $ Core.collectReflectionPoints state.sprites state.geometry
   let frs = Core.toIso firstReflection.source
   let frd = Core.toIso firstReflection.dest
   let frr = Core.toIso firstReflection.reflection

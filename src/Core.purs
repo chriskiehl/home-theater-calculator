@@ -2,21 +2,46 @@ module Core where
 
 import Prelude
 
-import Data.Either (Either(..))
-import Data.Foldable (traverse_)
 import Data.Int (toNumber)
 import Data.List (find, foldl)
-import Data.Map as M
 import Data.Map as Map
-import Data.Maybe (Maybe(..), fromJust)
-import Data.Traversable (traverse)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Debug (spy)
+import DegreeMath (atan, cos, sin, tan)
 import Math as Math
-import ParseInt (parseBase10, parseInt)
-import Types (AnchorPosition(..), ApplicationState, AudioChannels(..), Degree, FOV, FormID(..), Geometry, LocalPosition, Position, ScreenSize, Sprite, SpriteID(..), SpriteMap, TvSpecs, AspectRatio)
+import ParseInt (parseBase10)
+import Types (AnchorPosition(..), ApplicationState, AspectRatio, AudioChannels(..), Degree, FOV, FormID(..), Geometry, LocalPosition, Position, Sprite, SpriteID(..), SpriteMap, TvSpecs)
 import Utils (unsafeLookup, (.<<.))
-import Vector (Matrix2D, Vector, norm, (:**:), (:*:), (:+:), (:-:))
+import Vector (Matrix2D, Vector, (:**:), (:*:), (:+:), (:-:))
+
+{-
+
+baselineXPosition :: ApplicationState -> ApplicationState 
+
+
+updateField :: ApplicationState -> FormID -> String -> ApplicationState
+handleMouseDown :: ApplicationState -> LocalPosition -> ApplicationState 
+handleMouseMove :: ApplicationState -> LocalPosition -> ApplicationState 
+updateSprites :: (Sprite -> Sprite) -> ApplicationState -> ApplicationState
+
+updateState :: ApplicationState -> Vector -> ApplicationState
+updateFuck :: ApplicationState -> Sprite -> Vector -> ApplicationState
+
+fooBarBazChaz :: Sprite -> LocalPosition -> State -> State
+
+-}
+
+
+handleMouseDown :: ApplicationState -> LocalPosition -> ApplicationState 
+handleMouseDown state cursorPos = state{sprites=updateWhen (spriteInBounds cursorPos) (setDragging cursorPos) state.sprites}
+
+handleMouseMove :: ApplicationState -> LocalPosition -> ApplicationState 
+handleMouseMove state pos = (updateState2 state pos) --repositionSprites $ (updateState state pos)
+
+handleMouseUp :: ApplicationState -> ApplicationState 
+handleMouseUp state = state{sprites=map (\s -> s{isBeingDragged=false, image=s.images.normal}) state.sprites} 
+
 
 origin :: Position 
 origin = {x: 0.0, y: 0.0}
@@ -43,7 +68,7 @@ parseRoomDimension = parseBase10 .<<. betweenZeroAndTwoHundred
 
 
 -- I can't figure out how to program generically against Records 
--- in the same way you would against plain Javascript Objects. 
+-- in the same way you would against plain Javascript Objects / maps. 
 -- I similarly haven't been able for figure out how to dynamically 
 -- access a record by key (get Proxy doesn't seem to allow dynmic varables). 
 -- Thus: the repeated boilerplate below. 
@@ -75,20 +100,6 @@ baselineXPosition state = state{sprites=nextSprites}
   nextSprites = translateSprites state.sprites {x: delta, y: 0.0}
 
 
-spriteInBounds :: LocalPosition -> Sprite -> Boolean 
-spriteInBounds pos s = inBoundsDebug (localToIso pos) s
-
-
-centerX :: SpriteMap -> Geometry -> SpriteMap 
-centerX sprites {width} = translateSprites sprites {x: delta, y: 0.0}
-  where 
-  currentCenter = (unsafeLookup Chair sprites) 
-  delta = currentCenter.pos.x - (width/2.0)
-
-
-
-
-
 forScreenSize :: Geometry -> TvSpecs -> Geometry
 forScreenSize currentGeometry tv = currentGeometry{center{y=units}, radius=radius / 16.0}
   where 
@@ -98,9 +109,9 @@ forScreenSize currentGeometry tv = currentGeometry{center{y=units}, radius=radiu
   screenWidth = spy "screenWidth: " $ (cos diagonalDegrees) * screenSize 
 
   fov = 20.0 
-  distance = spy "distance:" $ (screenWidth / 2.0) / (tan fov)
-  radius = spy "radius:" $ distance / (cos 30.0)
-  units = spy "units: " $ distance / 16.0
+  distance = (screenWidth / 2.0) / (tan fov)
+  radius = distance / (cos 30.0)
+  units =  distance / 16.0
 
 
 -- | computes the horizontal width of the screen from 
@@ -110,47 +121,66 @@ screenWidth {screenSize, aspectRatio} = (cos diagonalDegrees) * screenSize
   where 
   diagonalDegrees = atan (aspectRatio.height / aspectRatio.width) 
 
-
-
-
-
-
-setDragging :: LocalPosition -> Sprite -> Sprite 
-setDragging pos s = s{isBeingDragged=true, clickOffset=(localToIso pos) :-: s.pos}
-
-
-handleMouseDown :: ApplicationState -> LocalPosition -> ApplicationState 
-handleMouseDown state cursorPos = find (spriteInBounds cursorPos) (M.values state.sprites) 
-    # map (setDragging cursorPos)
-    # case _ of 
-      Just updatedSprite -> state{sprites=M.insert updatedSprite.id updatedSprite state.sprites} 
-      Nothing -> state 
-  -- where 
-  -- _ = spy "found?" $ find (spriteInBounds cursorPos) (M.values state.sprites) 
-
-handleMouseMove :: ApplicationState -> LocalPosition -> ApplicationState 
-handleMouseMove state pos = (updateState state pos) --repositionSprites $ (updateState state pos)
+ 
+    
+setDragging :: LocalPosition -> Sprite -> Sprite  
+setDragging pos s = s{isBeingDragged=true, clickOffset=(localToIso pos) :-: s.pos}   
 
 
 updateSprites :: (Sprite -> Sprite) -> ApplicationState -> ApplicationState
 updateSprites f state = state{sprites=map f state.sprites}
 
 
-updateSprites_ :: Sprite -> (Sprite -> Sprite) -> ApplicationState -> ApplicationState
-updateSprites_ sprite_ f state = updateSprites (\s -> if s.id == target.id then f s else s) state 
-  where target = sprite_
+updateWhen :: (Sprite -> Boolean) -> (Sprite -> Sprite) -> SpriteMap -> SpriteMap 
+updateWhen predicate f = map (\s -> if (predicate s) then (f s) else s)
 
 
-updateState :: ApplicationState -> Vector -> ApplicationState
-updateState state v = res 
+updateState2 :: ApplicationState -> LocalPosition -> ApplicationState 
+updateState2 state cursor = (handleHover cursor nextState) 
   where 
-  sprites = Map.values state.sprites
-  res = foldl (\acc s -> updateFuck acc (unsafeLookup s.id acc.sprites) v) state sprites 
-  _ = (unsafeLookup Chair res.sprites).isBeingDragged
+  nextState = find isBeingDragged state.sprites 
+    # map (updateFuck2 state cursor) 
+    # fromMaybe state 
 
 
-withinBoundaries :: SpriteMap -> Geometry -> Boolean 
-withinBoundaries sprites {width, depth} = rearInBounds && frontInBounds 
+
+updateFuck :: ApplicationState -> Sprite -> Vector -> ApplicationState
+updateFuck state s v = case s.id of 
+  Chair -> let ss = (onHoverr v s state) in onCenterDrag v (unsafeLookup s.id ss.sprites) ss 
+  -- LeftFront -> onHoverr v s state
+  _ -> (onHoverr `cc` onDragdd) v s state
+  -- _ -> state
+  where 
+  _ = 1234 
+
+updateFuck2 :: ApplicationState -> Vector -> Sprite -> ApplicationState
+updateFuck2 state v s = case s.id of 
+  Chair -> onCenterDrag v s state 
+  -- LeftFront -> onHoverr v s state
+  _ -> (onHoverr `cc` onDragdd) v s state
+  -- _ -> state
+  where 
+  _ = 1234 
+
+
+handleHover :: LocalPosition -> ApplicationState -> ApplicationState 
+handleHover cursorPos state = state{sprites=map (onHover2 cursorPos) state.sprites}
+
+-- handleMove :: LocalPosition -> ApplicationState -> ApplicationState 
+-- handleMove cursorPos state = state 
+--   where 
+--   _ = updateWhen isBeingDragged  (updateFuck )
+
+
+isBeingDragged :: Sprite -> Boolean 
+isBeingDragged = _.isBeingDragged
+
+spriteInBounds :: LocalPosition -> Sprite -> Boolean 
+spriteInBounds pos s = inBoundsDebug (localToIso pos) s
+
+
+withinBoundaries :: Geometry -> SpriteMap -> Boolean 
+withinBoundaries {width, depth} sprites = rearInBounds && frontInBounds 
  -- foldl (\acc s -> acc && s.pos.y > 0.0 && s.pos.y <= depth && s.pos.x > 0.0) true []
   where 
   leftRear = footprint (unsafeLookup LeftRear sprites)
@@ -159,6 +189,17 @@ withinBoundaries sprites {width, depth} = rearInBounds && frontInBounds
   rearInBounds = leftRear.bottomLeft.y <= depth && leftRear.bottomLeft.x >= 0.0
   -- ssprites = leftRear.x > 0.0 && leftRear.y + leftRear
   _ = foldl (\acc s -> s.pos.y >= -0.0 && s.pos.y <= depth) true (Map.values sprites)
+
+
+isCollidingWithTv :: TvSpecs -> SpriteMap -> Boolean 
+isCollidingWithTv tv sprites = leftFront.bottomRight.x >= tvSprite.bottomLeft.x
+  where 
+  {screenSize, aspectRatio} = tv
+  leftFront = footprint (unsafeLookup LeftFront sprites)
+  tvSprite = footprint (unsafeLookup TV sprites)
+  diagonalDegrees = atan (aspectRatio.height / aspectRatio.width )
+  screenWidth = (cos diagonalDegrees) * screenSize 
+  isoWidth = (cos 30.0) * screenWidth / 16.0
 
 
 footprint :: Sprite -> {topLeft :: Position, topRight :: Position, bottomLeft :: Position, bottomRight :: Position}
@@ -175,28 +216,14 @@ footprint s = {topLeft, topRight, bottomLeft, bottomRight}
   bottomRight = bottomLeft :+: {x: s.size.x, y: 0.0}
 
 
-collidingWithTv :: SpriteMap -> TvSpecs -> Boolean 
-collidingWithTv sprites tv = leftFront.bottomRight.x >= tvSprite.bottomLeft.x
-  where 
-  {screenSize, aspectRatio} = tv
-  leftFront = footprint (unsafeLookup LeftFront sprites)
-  tvSprite = footprint (unsafeLookup TV sprites)
-  diagonalDegrees = atan (aspectRatio.height / aspectRatio.width )
-  screenWidth = (cos diagonalDegrees) * screenSize 
-  isoWidth = (cos 30.0) * screenWidth / 16.0
-
-
-
-
 computeGeometry :: SpriteMap -> {center :: Position, radius :: Number}
-computeGeometry sprites = {center: center chair, radius: hypotenuse}
+computeGeometry sprites = {center: chair.pos, radius: hypotenuse}
   where 
   tv = unsafeLookup TV sprites 
   chair = unsafeLookup Chair sprites 
   distance = dist chair.pos tv.pos
   horizontalDistance = (tan (30.0 * Math.pi / 180.0)) * distance
   hypotenuse =  Math.sqrt $ (distance*distance) + (horizontalDistance * horizontalDistance)
-
 
 
 positionSprite :: Sprite -> Geometry -> Number -> Sprite 
@@ -207,17 +234,6 @@ positionSprite sprite {center, radius} degrees = sprite{pos=targetPos}
   targetPos = rotatedVector :+: center
 
 
-
-updateFuck :: ApplicationState -> Sprite -> Vector -> ApplicationState
-updateFuck state s v = case s.id of 
-  -- Chair -> onHoverr v s state
-  -- Chair -> ((onHoverr `cc` onDragdd)) v s state
-  Chair -> (onHoverr `cc` onCenterDrag) v s state
-  -- LeftFront -> onHoverr v s state
-  _ -> (onHoverr `cc` onDragdd) v s state
-  -- _ -> state
-
-
 cc :: (LocalPosition -> Sprite -> ApplicationState -> ApplicationState) 
    -> (LocalPosition -> Sprite -> ApplicationState -> ApplicationState) 
    -> (LocalPosition -> Sprite -> ApplicationState -> ApplicationState)
@@ -226,7 +242,7 @@ cc f g = (\cursor sprite state ->
   in g cursor (unsafeLookup sprite.id state'.sprites) state')
 
 
-onHoverr :: Vector -> Sprite -> ApplicationState -> ApplicationState
+onHoverr :: LocalPosition -> Sprite -> ApplicationState -> ApplicationState
 onHoverr cursorPos s state = state{sprites=Map.insert s.id updatedSprite state.sprites}
   where 
   -- _ = if s.id == Chair then spy "chair in bounds?" (inBounds3 cursorPos s) else false 
@@ -235,50 +251,22 @@ onHoverr cursorPos s state = state{sprites=Map.insert s.id updatedSprite state.s
                   else s{image=s.images.normal}
   -- _ = spy "being dragged?" updatedSprite.isBeingDragged
 
-center :: Sprite -> Vector 
-center s = s.pos :+: {x: s.size.x / 2.0, y: 0.0}
-
 
 dist :: Vector -> Vector -> Number 
 dist v1 v2 = Math.sqrt $ (Math.pow (v2.x - v1.x) 2.0) + (Math.pow (v2.y - v1.y) 2.0)
 
 translateGeometry :: LocalPosition -> Sprite -> ApplicationState -> ApplicationState
 translateGeometry cursorPos s state = state 
--- | below is current commented out because I need the delta from the 
--- | drag calculation available for recomputing the geometry, which I don't 
--- | have in this function. The architecture here is bad. I need state, state-1 to 
--- | make decisions
--- translateGeometry cursorPos s state = if s.isBeingDragged then state{geometry{center=newCenter}} else state 
---   where 
---   {center, radius, width} = state.geometry
---   ay = {x: 0.0, y: ((localToIso cursorPos) :-: s.clickOffset).y} 
---   by = {x: 0.0, y: s.pos.y}
---   d = dist ay by 
---   -- _ = if s.isBeingDragged then spy "dist: " [ay.y, by.y, d] else []
---   -- _ = if s.isBeingDragged then spy "sprite: " [s.pos.x, s.pos.y] else []
---   -- _ = if s.isBeingDragged then spy "Cursor: " [isoPos.x, isoPos.y] else []
---   -- _ = if s.isBeingDragged then spy "Cursor2: " [((localToIso pos) :-: s.pos).x, ((localToIso pos) :-: s.pos).y] else []
---   length = (Math.cos (toRadians 30.0)) * radius
---   newCenter = center{y=(s.pos.y + (s.size.y / 2.0)) + length, x = width / 2.0}
 
 
 fieldOfView :: SpriteMap -> TvSpecs -> FOV 
 fieldOfView sprites specs = angle * 2.0
   where 
-  halfScreenWidth = spy "half width: " $ (screenWidth specs) / 2.0 
+  halfScreenWidth = (screenWidth specs) / 2.0 
   center = unsafeLookup Chair sprites
   tv = unsafeLookup TV sprites
-  distance = spy "distance is: " $ (dist center.pos tv.pos) * 16.0
+  distance = (dist center.pos tv.pos) * 16.0
   angle = atan (halfScreenWidth / distance)
-  
-
-
-
-
-anchorXY :: Sprite -> Sprite 
-anchorXY s = s{pos=s.pos :+: (0.5 :*: {x: s.size.x, y: s.size.y})} 
-
-
   
 
 
@@ -289,9 +277,9 @@ fromConfig state = state{sprites=updates}
   {width, depth} = state.geometry
   screenHorizontal = screenWidth state.tvSpecs 
   fov = 20.0 
-  distance = spy "distance:" $ (screenHorizontal / 2.0) / (tan fov)
-  radius = spy "radius:" $ (distance / (cos 30.0)) / 16.0
-  units = spy "units: " $ distance / 16.0
+  distance = (screenHorizontal / 2.0) / (tan fov)
+  radius = (distance / (cos 30.0)) / 16.0
+  units = distance / 16.0
 
   center = {x: width/2.0, y: units + 1.0}
   tv = {x: width / 2.0, y: 1.0}
@@ -309,37 +297,6 @@ fromConfig state = state{sprites=updates}
     Tuple RightRear $ positionSpriteNEW (unsafeLookup RightRear sprites) {center, radius} (110.0),
     Tuple LeftRear $ positionSpriteNEW (unsafeLookup LeftRear sprites) {center, radius} (-110.0)
   ]    
-
-
-
-
-layoutSpeakers :: SpriteMap -> SpriteMap 
-layoutSpeakers sprites = Map.union updates sprites
-  where 
-  chair = (unsafeLookup Chair sprites)
-  center = chair.pos
-  tv = (unsafeLookup TV sprites)
-  distToTv = dist chair.pos tv.pos
-  radius = distToTv / (cos 30.0)
-  -- distToTv = (cos 30.0) * geometry.radius
-  -- tvPos = geometry.center :-: {x: 0.0, y: distToTv}
-  updates = Map.fromFoldable [
-    -- Tuple Chair $ (unsafeLookup Chair sprites){pos=geometry.center},
-    -- Tuple TV    $ (unsafeLookup TV sprites){pos=tvPos},
-    -- Tuple Center    $ centerXY (unsafeLookup Center sprites){pos=geometry.center :-: {x: 0.0, y: geometry.radius}},
-    Tuple LeftFront $ positionSpriteNEW (unsafeLookup LeftFront sprites) {center, radius} (-30.0),
-    Tuple RightFront $ positionSpriteNEW (unsafeLookup RightFront sprites) {center, radius} (30.0),
-    Tuple RightRear $ positionSpriteNEW (unsafeLookup RightRear sprites) {center, radius} (110.0),
-    Tuple LeftRear $ positionSpriteNEW (unsafeLookup LeftRear sprites) {center, radius} (-110.0)
-  ]    
-
-
-positionSpriteNEW :: Sprite -> {center::Position, radius:: Number} -> Number -> Sprite 
-positionSpriteNEW sprite {center, radius} degrees = sprite{pos=targetPos}
-  where 
-  forwardVector = {x: 0.0, y: -radius} 
-  rotatedVector = rotate forwardVector degrees 
-  targetPos = rotatedVector :+: center
 
 
 layoutSprites :: SpriteMap -> Geometry -> SpriteMap 
@@ -360,108 +317,137 @@ layoutSprites sprites geometry = Map.union updates sprites
     Tuple LeftRear $ positionSprite (unsafeLookup LeftRear sprites) geometry (-110.0)
   ]
 
+recenterSprites :: SpriteMap -> Vector -> SpriteMap 
+recenterSprites sprites delta = Map.union updates sprites 
+  where 
+  currentCenter = (unsafeLookup Chair sprites) 
+  tv = (unsafeLookup TV sprites) 
+  newCenter = currentCenter.pos :+: delta 
+  distance = (dist newCenter tv.pos)
+  radius = distance / (cos 30.0) 
+  updates = Map.fromFoldable [
+    Tuple Chair $ (unsafeLookup Chair sprites){pos=newCenter},
+    -- Tuple TV    $ (unsafeLookup TV sprites),
+    -- Tuple Center    $ centerXY (unsafeLookup Center sprites){pos=geometry.center :-: {x: 0.0, y: geometry.radius}},
+    Tuple LeftFront $ positionSpriteNEW (unsafeLookup LeftFront sprites) {center: newCenter, radius} (-30.0),
+    Tuple RightFront $ positionSpriteNEW (unsafeLookup RightFront sprites) {center: newCenter, radius} (30.0),
+    Tuple RightRear $ positionSpriteNEW (unsafeLookup RightRear sprites) {center: newCenter, radius} (110.0),
+    Tuple LeftRear $ positionSpriteNEW (unsafeLookup LeftRear sprites) {center: newCenter, radius} (-110.0)
+  ]
+
+
+positionSpriteNEW :: Sprite -> {center::Position, radius:: Number} -> Number -> Sprite 
+positionSpriteNEW sprite {center, radius} degrees = sprite{pos=targetPos}
+  where 
+  forwardVector = {x: 0.0, y: -radius} 
+  rotatedVector = rotate forwardVector degrees 
+  targetPos = rotatedVector :+: center
+
+
 translateSprites :: SpriteMap -> Vector -> SpriteMap 
 translateSprites sprites v = map (\s -> s{pos=s.pos :+: v}) sprites
 
+
+
 onCenterDrag :: LocalPosition -> Sprite -> ApplicationState -> ApplicationState
-onCenterDrag cursorPos s state = if isDrag && (withinBoundaries oopdated state.geometry) && spy "tv collide?" (not (collidingWithTv oopdated state.tvSpecs) )
-                                 then state{sprites=oopdated, geometry=newCenter} 
-                                 else state 
+onCenterDrag cursorPos s state = refactoredState
+-- onCenterDrag cursorPos s state = if isDrag && (withinBoundaries state.geometry oopdated) && (not (isCollidingWithTv state.tvSpecs oopdated))
+--                                  then state{sprites=oopdated, geometry=newCenter} 
+--                                  else state 
   where 
   isDrag = s.isBeingDragged 
-  isChair = s.id == Chair  
-  -- _ = spy "is chair drag?" [isDrag, isChair]
+  -- isChair = s.id == Chair  
+  -- -- _ = spy "is chair drag?" [isDrag, isChair]
+  -- nextPos = (localToIso cursorPos) :-: s.clickOffset 
+  -- delta = dist {x: 0.0, y: nextPos.y} {x: 0.0, y: s.pos.y} 
+  -- xConstrainedPos = {x: s.pos.x, y: nextPos.y} 
+  -- heading = norm $ nextPos :-: s.pos  
+  -- forward = heading.y > 0.0 
+  -- deltaDirection = if forward then delta else -delta 
+
+  -- updatedChair = if s.isBeingDragged then s{pos=xConstrainedPos, image=s.images.hover} else s
+  -- tv = unsafeLookup TV state.sprites 
+
+  -- distance = dist updatedChair.pos tv.pos 
+  -- -- _ = spy "distance?" distance 
+  -- -- _ = spy "d?" [xConstrainedPos.x, xConstrainedPos.y, state.geometry.center.x, state.geometry.center.y]
+  -- newRadius = distance / cos 30.0
+
+  -- newCenter = if isDrag && isChair
+  --             then state.geometry{center = xConstrainedPos, radius=newRadius} 
+  --             else state.geometry
+  -- -- newGeo = if isDrag then recenterGeometry2 s newCenter else state.geometry 
+  -- oopdated = if isDrag then (layoutSprites state.sprites newCenter) else state.sprites
+  -- -- ooopdated = Map.insert Chair ( if s.isBeingDragged then s{pos=xConstrainedPos, image=s.images.hover} else s) state.sprites
+  -- -- ooopdated = Map.insert Chair ( if s.isBeingDragged then s{pos=xConstrainedPos, image=s.images.hover} else s) oopdated
+
+  isColliding = \sm -> not (withinBoundaries state.geometry sm && (not (isCollidingWithTv state.tvSpecs sm)))
+  -- mover = translateSprites
+  mover = recenterSprites
+  -- ogState = if isDrag && (withinBoundaries state.geometry oopdated) && (not (isCollidingWithTv state.tvSpecs oopdated))
+  --                                then state{sprites=oopdated, geometry=newCenter} 
+  --                                else state 
+  refactoredState = if isDrag then (onMove mover isColliding s cursorPos state){geometry=state.geometry} else state 
+  -- _ = if s.isBeingDragged then spy "og center:" [(unsafeLookup Chair ogState.sprites).pos.x, (unsafeLookup Chair ogState.sprites).pos.y] else []
+  -- _ = if s.isBeingDragged then spy "rf center:" [(unsafeLookup Chair refactoredState.sprites).pos.x, (unsafeLookup Chair refactoredState.sprites).pos.y] else []
+
+
+
+booleanAnd :: (SpriteMap -> Boolean) -> (SpriteMap -> Boolean) -> (SpriteMap -> Boolean) 
+booleanAnd f g = (\s -> (f s) && (g s))
+
+infixr 5 booleanAnd as &&&&
+
+onHover2 :: LocalPosition -> Sprite -> Sprite 
+onHover2 cursorPos s = if (inBoundsDebug (localToIso cursorPos) s) 
+                       then s{image=s.images.hover} 
+                       else s{image=s.images.normal} 
+
+-- onDrag2 :: Sprite -> LocalPosition -> Sprite
+-- onDrag2 s cursorPos = if s.isBeingDragged
+
+-- get the vector describing how the sprites position has changed 
+-- relative to the cursor's drag position
+positionDelta :: Sprite -> LocalPosition -> Vector 
+positionDelta s cursorPos = {x: 0.0, y: nextPos.y} :-: {x: 0.0, y: s.pos.y} 
+  where 
   nextPos = (localToIso cursorPos) :-: s.clickOffset 
-  delta = dist {x: 0.0, y: nextPos.y} {x: 0.0, y: s.pos.y} 
-  xConstrainedPos = {x: s.pos.x, y: nextPos.y} 
-  heading = norm $ nextPos :-: s.pos  
-  forward = heading.y > 0.0 
-  deltaDirection = if forward then delta else -delta 
 
-  updatedChair = if s.isBeingDragged then s{pos=xConstrainedPos, image=s.images.hover} else s
-  tv = unsafeLookup TV state.sprites 
 
-  distance = dist updatedChair.pos tv.pos 
-  -- _ = spy "distance?" distance 
-  -- _ = spy "d?" [xConstrainedPos.x, xConstrainedPos.y, state.geometry.center.x, state.geometry.center.y]
-  newRadius = distance / cos 30.0
+onMove 
+  :: (SpriteMap -> Vector -> SpriteMap) 
+  -> (SpriteMap -> Boolean) 
+  -> Sprite 
+  -> LocalPosition 
+  -> ApplicationState
+  -> ApplicationState
+onMove moveFn isColliding s cursorPos state = nextState 
+  where 
+  delta = positionDelta s cursorPos 
+  repositionedSprites = moveFn state.sprites delta 
+  nextState = if s.isBeingDragged && not (spy "isColliding?" (isColliding repositionedSprites))
+              then state{sprites=repositionedSprites}
+              else state 
 
-  newCenter = if isDrag && isChair
-              then state.geometry{center = xConstrainedPos, radius=newRadius} 
-              else state.geometry
-  -- newGeo = if isDrag then recenterGeometry2 s newCenter else state.geometry 
-  oopdated = if isDrag then (layoutSprites state.sprites newCenter) else state.sprites
-  -- ooopdated = Map.insert Chair ( if s.isBeingDragged then s{pos=xConstrainedPos, image=s.images.hover} else s) state.sprites
-  -- ooopdated = Map.insert Chair ( if s.isBeingDragged then s{pos=xConstrainedPos, image=s.images.hover} else s) oopdated
+
+
+
 
 
 -- this handles dragging + updating the main geometry (and thus the other sprites) 
 -- need to figure out how to break these apart. We need the change info in order 
 -- to be able to compute the geometry
 onDragdd :: LocalPosition -> Sprite -> ApplicationState -> ApplicationState
-onDragdd cursorPos s state = state{sprites=if (withinBoundaries updatedSprties2 state.geometry) then updatedSprties2 else state.sprites, geometry=newCenter} 
+onDragdd cursorPos s state = refactoredState --state{sprites=if (withinBoundaries state.geometry updatedSprties2) then updatedSprties2 else state.sprites} 
   where 
-  -- move(all)Sprites
-  -- do collision detection 
-  -- if collides: original state else newState 
   isDrag = s.isBeingDragged 
-  isChair = s.id == Chair  
-  nextPos = (localToIso cursorPos) :-: s.clickOffset 
-  delta = dist {x: 0.0, y: nextPos.y} {x: 0.0, y: s.pos.y} 
-  -- nextSprites = map (slide delta) state.sprites 
-  -- qqxq = case (traverse (slideSprite delta) state.sprites) of
-  --    Right updated -> Map.merge
-  --    Left error -> originalState 
-
-  leftRear = unsafeLookup LeftRear state.sprites 
-  leftFront = unsafeLookup LeftFront state.sprites 
-  -- _ = if isDrag then spy "nextPos:" [nextPos.x, nextPos.y] else []
-  heading = norm $ nextPos :-: s.pos  
-  forward = heading.y > 0.0 
-  deltaDirection = if forward then delta else -delta 
-  xConstrainedPos = {x: s.pos.x, y: nextPos.y} 
-
-  updatedSprties2 = map (\ss -> if s.isBeingDragged && (not isChair) then ss{pos{y= ss.pos.y + deltaDirection} , image=ss.images.hover} else ss) state.sprites 
-  
-  -- updatedSprite = if s.isBeingDragged then s{pos=xConstrainedPos, image=s.images.hover} else s
-  -- updatedSprites = Map.insert s.id updatedSprite state.sprites 
-  newCenter = if isDrag && (not isChair) && (leftRear.pos.y < state.geometry.depth && leftFront.pos.y > -2.0)
-              then state.geometry{center = {x: state.geometry.center.x, y: state.geometry.center.y + deltaDirection}} 
-              else state.geometry
-  -- _ = if isDrag then spy "distance: " delta else 0.0
-  -- _ = if isDrag then spy "norm: " [heading.x, heading.y] else []
-  -- _ = spy "within bounds?" (withinBoundaries updatedSprties2 state.geometry)
+  isColliding = \sm -> not (withinBoundaries state.geometry sm && (not (isCollidingWithTv state.tvSpecs sm)))
+  mover = translateSprites
+  refactoredState = if isDrag then (onMove mover isColliding s cursorPos state){geometry=state.geometry} else state 
 
 
 
 
-type ReflectionBetweenPoints = {
-  e :: Vector, 
-  f :: Vector, 
-  c :: Vector
-  -- slopeCA :: Number, 
-  -- interceptCA :: Number,
-  -- slopeDB :: Number, 
-  -- interceptCA :: Number,
-}
-
-
-rearReflection :: RearReflectionPoints -> ReflectionBetweenPoints
-rearReflection {a, b, c, d} = {e: d, f, c}
-  where 
-  slopeCA = (c.y - a.y) / (c.x - a.x)
-  interceptCA = c.y - (slopeCA * c.x)
-
-  slopeDB = (d.y - b.y) / (d.x - b.x) 
-  interceptEB = d.y - (slopeDB * d.x)
-
-
-  xIntersection = (interceptEB - interceptCA) / (slopeCA - slopeDB)
-  yIntersection = (slopeCA * xIntersection) + interceptCA
-
-  -- the reflection between C and E
-  reflectionPoint = {x: xIntersection, y: b.y} 
-  f = reflectionPoint 
 
 
 lineIntersection :: Position -> Position -> Position -> Position -> Position 
@@ -476,11 +462,9 @@ lineIntersection a1 a2 b1 b2 = {x: xIntersection, y: yIntersection}
   xIntersection = (interceptEB - interceptCA) / (slopeCA - slopeDB)
   yIntersection = (slopeCA * xIntersection) + interceptCA
 
-  -- -- the reflection between C and E
-  -- reflectionPoint = {x: xIntersection, y: b.y} 
-  -- f = reflectionPoint 
 
-leftReflections :: WallInteractionPoints -> FrontReflection
+
+leftReflections :: WallInteractionPoints -> PrimaryReflections
 leftReflections {a, b, c, d, e, f, g, h, i, j} = {firstReflection, secondReflection, thirdReflection}
   where 
   firstIntersection = lineIntersection a f e b  
@@ -491,7 +475,7 @@ leftReflections {a, b, c, d, e, f, g, h, i, j} = {firstReflection, secondReflect
   secondReflection = {source: b, reflection: {x: d.x, y: secondIntersection.y}, dest: f}
   thirdReflection = {source: b, reflection: {x: thirdIntersection.x, y: i.y}, dest: f}
 
-rightReflections :: WallInteractionPoints -> FrontReflection
+rightReflections :: WallInteractionPoints -> PrimaryReflections
 rightReflections {a, b, c, d, e, f, g, h, i, j} = {firstReflection, secondReflection, thirdReflection}
   where 
   firstIntersection = lineIntersection c g f d   
@@ -502,22 +486,6 @@ rightReflections {a, b, c, d, e, f, g, h, i, j} = {firstReflection, secondReflec
   secondReflection = {source: c, reflection: {x: a.x, y: secondIntersection.y}, dest: f}
   thirdReflection = {source: c, reflection: {x: thirdIntersection.x, y: i.y}, dest: f}
 
-
-type ReflectionPoints = {
-  a :: Vector, 
-  b :: Vector, 
-  c :: Vector, 
-  d :: Vector, 
-  e :: Vector
-}
-
-
-type RearReflectionPoints = {
-  a :: Position, 
-  b :: Position, 
-  c :: Position, 
-  d :: Position 
-}
 
 type LineSegment = {p1 :: Vector, p2 :: Vector}
 
@@ -562,7 +530,7 @@ type WallInteractionPoints = {
   j :: Position
 }
 
-type FrontReflection = {
+type PrimaryReflections = {
  firstReflection :: {source :: Position, reflection :: Position, dest :: Position},
  secondReflection :: {source :: Position, reflection :: Position, dest :: Position},
  thirdReflection :: {source :: Position, reflection :: Position, dest :: Position}
@@ -570,23 +538,6 @@ type FrontReflection = {
 
 
 
-toRadians :: Degree -> Number 
-toRadians x = x * (Math.pi / 180.0)
-
-toDegrees :: Number -> Degree 
-toDegrees rad = rad * (180.0 / Math.pi)
-
-sin :: Degree -> Number 
-sin = Math.sin <<< toRadians
-
-cos :: Degree -> Number 
-cos = Math.cos <<< toRadians 
-
-tan :: Degree -> Number 
-tan = Math.tan <<< toRadians
-
-atan :: Degree -> Number 
-atan = toDegrees <<< Math.atan
 
 
 rotate :: Vector -> Degree -> Vector 
@@ -608,6 +559,9 @@ anchorAdjusted s = case s.anchor of
   LogicalOrigin -> s{pos=s.pos :-: s.originOffset}
   _ -> s 
 
+
+anchorXY :: Sprite -> Sprite 
+anchorXY s = s{pos=s.pos :+: (0.5 :*: {x: s.size.x, y: s.size.y})} 
 
 centerXY :: Sprite -> Sprite
 centerXY s = s{pos=s.pos :-: (0.5 :*: {x: s.size.x, y: s.size.y})} 

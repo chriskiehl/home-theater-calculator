@@ -105,65 +105,65 @@ initialState = {
 reducer :: ApplicationState -> Action -> ApplicationState 
 reducer state action = case action of 
   UpdateField id value -> Core.baselineXPosition $ Core.updateField state id value 
-  -- UpdateField id value -> Core.repositionSprites $ Core.updateField state id value 
   MouseDown pos -> Core.handleMouseDown state pos 
-  MouseUp pos -> Core.updateSprites (\s -> s{isBeingDragged=false, image=s.images.normal}) state 
-  MouseMove pos -> 
-    let res = Core.handleMouseMove state pos  
-        -- _ = spy "Normal?" $ (unsafeLookup Chair res.sprites).image == (unsafeLookup Chair res.sprites).images.normal
-    in  res 
+  MouseUp pos -> Core.handleMouseUp state 
+  MouseMove pos -> Core.handleMouseMove state pos  
   _ -> state 
-
-
-
 
 application :: Component Unit 
 application = do 
-  envRef <- spy "again?" $ Refs.new Nothing -- {canvas: Nothing, ctx: Nothing}
-  reducer' <- mkReducer reducer 
   component "Reducer" \_ -> React.do
-    state /\ dispatch <- useReducer (Core.fromConfig initialState) reducer'
-    -- state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x: 0.0, y: 1.0}} reducer'
-    -- state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x:0.0, y:1.0}} reducer'
-    -- state /\ dispatch <- useReducer initialState reducer'
+    pure $ fragment [
+      R.div_ [R.text "uhh..."]
+    ]
 
-    -- lookup the canvas element in the DOM and store it 
-    -- in our mutable Ref. 
-    useEffect "once" $ unsafePartial do 
-      maybeEnv <- CanvasSupport.getCanvasEnvironment "canvas"
-      -- for some reason, this only seems to actually write when
-      -- I put it on its own line and do <-. Trying pure $ Refs.write (...) results 
-      -- in the ref never being modified 
-      _ <- Refs.write maybeEnv envRef
-      -- ditto for this. It only appears to actually run with the <- magic
-      _ <- case maybeEnv of  
-        Just context -> CanvasRenderer.render context.ctx state
-        Nothing -> pure unit 
-      _ <- case maybeEnv of  
-        Just context -> CanvasRenderer.render context.ctx state
-        Nothing -> pure unit 
-      pure (pure unit)
+-- application :: Component Unit 
+-- application = do 
+--   envRef <- spy "again?" $ Refs.new Nothing -- {canvas: Nothing, ctx: Nothing}
+--   reducer' <- mkReducer reducer 
+--   component "Reducer" \_ -> React.do
+--     state /\ dispatch <- useReducer (Core.fromConfig initialState) reducer'
+--     -- state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x: 0.0, y: 1.0}} reducer'
+--     -- state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x:0.0, y:1.0}} reducer'
+--     -- state /\ dispatch <- useReducer initialState reducer'
+
+--     -- lookup the canvas element in the DOM and store it 
+--     -- in our mutable Ref. 
+--     useEffect "once" $ unsafePartial do 
+--       maybeEnv <- CanvasSupport.getCanvasEnvironment "canvas"
+--       -- for some reason, this only seems to actually write when
+--       -- I put it on its own line and do <-. Trying pure $ Refs.write (...) results 
+--       -- in the ref never being modified 
+--       _ <- Refs.write maybeEnv envRef
+--       -- ditto for this. It only appears to actually run with the <- magic
+--       _ <- case maybeEnv of  
+--         Just context -> CanvasRenderer.render context.ctx state
+--         Nothing -> pure unit 
+--       _ <- case maybeEnv of  
+--         Just context -> CanvasRenderer.render context.ctx state
+--         Nothing -> pure unit 
+--       pure (pure unit)
 
     
 
-    useLayoutEffect state $ unsafePartial do 
-      env <- Refs.read envRef 
-      -- Ok. Now evident that I don't know how things get executed. *Hours* lost on this line 
-      -- because when the <- is not there, it seemed to execute with an n-1 
-      -- view of the state, rather than the actual current state, which leads to 
-      -- absolutely bonkers behavior (like all hover behaviors being inverted)
-      -- finally traced it back to this. Baffling.. 
-      _ <- case env of 
-        Just context -> CanvasRenderer.render context.ctx state
-        Nothing -> pure unit 
-      pure (pure unit)
+--     useLayoutEffect state $ unsafePartial do 
+--       env <- Refs.read envRef 
+--       -- Ok. Now evident that I don't know how things get executed. *Hours* lost on this line 
+--       -- because when the <- is not there, it seemed to execute with an n-1 
+--       -- view of the state, rather than the actual current state, which leads to 
+--       -- absolutely bonkers behavior (like all hover behaviors being inverted)
+--       -- finally traced it back to this. Baffling.. 
+--       _ <- case env of 
+--         Just context -> CanvasRenderer.render context.ctx state
+--         Nothing -> pure unit 
+--       pure (pure unit)
 
-    pure $ fragment [
-      R.div {children: [
-        R.div_ [
-          mainCanvas {dispatch},
-          controls {dispatch, fields: state.form}
-        ],
-        report 
-      ]}
-    ]
+--     pure $ fragment [
+--       R.div {children: [
+--         R.div_ [
+--           mainCanvas {dispatch},
+--           controls {dispatch, fields: state.form}
+--         ],
+--         report 
+--       ]}
+--     ]
