@@ -22,7 +22,7 @@ This basically a glorified basic trig calculator that does two things:
 ### Notable Modules: 
 
  * The `Types` module has all the, as you'd expect, types along with comments explaining what they do. I don't know of centralizing them all like this is normal, but I saw they did that in the [multipac](https://github.com/hdgarrood/multipac/) library, so I did the same
- * The `Core` module holds just about all the logic in the system. That's where you find all the movement handlers, collision detection, layout management, etc.. 
+ * The `Core` module holds just about all the logic in the system. That's where you find all the movement handlers, collision detection, layout management, etc.. Tracing through `handleMouseDown`, `handleMouseUp`, and `handleMouseMove` would give you a solid overview of the major functionlaity. 
 
 Some modules, like `Debugging` can be safely ignored for the most part. It's just quickly thrown together things for drawing debugging info onto the canvas. 
 
