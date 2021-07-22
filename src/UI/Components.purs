@@ -15,16 +15,12 @@ import Utils (getValue)
 import Web.Event.EventTarget (dispatchEvent)
 
 
-
-
-
 controls :: FormProps -> JSX 
 controls = homeTheaterForm
     
-
 report :: JSX 
 report = do 
-  R.text "Report here!"
+  R.text "Buncha stats and stuff here"
 
 
 type FormProps = {

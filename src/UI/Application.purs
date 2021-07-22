@@ -42,9 +42,7 @@ initialScreenSize = 50
 initialGeometry :: Geometry
 initialGeometry = {
   width: toNumber initialWidth, 
-  depth: toNumber initialDepth, 
-  radius: 90000.0, 
-  center: {x: 15.0/2.0, y: 1.0}
+  depth: toNumber initialDepth
 }
 
 defaultSpecs :: TvSpecs
@@ -89,13 +87,13 @@ initialState = {
     Tuple LeftRear    Sprites.twoStackSprite{id=LeftRear, anchor=CenterEast},
     Tuple RightRear   Sprites.twoStackSprite{id=RightRear, anchor=CenterWest}
   ],
-  geometry: Core.forScreenSize initialGeometry defaultSpecs,
+  geometry: initialGeometry,
   tvSpecs: defaultSpecs,
   form: {
     mode: {id: SimulationMode, value: "Home Theater", error: Nothing, options: ["Home Theater", "Studio"]},
     roomWidth: {id: Width, value: initialWidth, error: Nothing},
     roomDepth: {id: Depth, value: initialDepth, error: Nothing},
-    channels: {id: Channels, value: "2.0", error: Nothing, options: ["2.0", "2.1", "5.1"]},
+    channels: {id: Channels, value: "2.0", error: Nothing, options: ["2.0", "5.0"]},
     screenSize: {id: ScreenSize, value: initialScreenSize, error: Nothing},
     aspectRatio: {id: AspectRatio, value: "16:9", error: Nothing, options: ["16:9", "2.4:1"]}
   }
@@ -104,66 +102,60 @@ initialState = {
 
 reducer :: ApplicationState -> Action -> ApplicationState 
 reducer state action = case action of 
-  UpdateField id value -> Core.baselineXPosition $ Core.updateField state id value 
+  UpdateField id value -> Core.updateField state id value 
   MouseDown pos -> Core.handleMouseDown state pos 
   MouseUp pos -> Core.handleMouseUp state 
   MouseMove pos -> Core.handleMouseMove state pos  
   _ -> state 
 
+
 application :: Component Unit 
 application = do 
+  envRef <- spy "again?" $ Refs.new Nothing -- {canvas: Nothing, ctx: Nothing}
+  reducer' <- mkReducer reducer 
+
   component "Reducer" \_ -> React.do
+    state /\ dispatch <- useReducer (Core.layoutFromConfig initialState) reducer'
+    -- state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x: 0.0, y: 1.0}} reducer'
+    -- state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x:0.0, y:1.0}} reducer'
+    -- state /\ dispatch <- useReducer initialState reducer'
+
+
+    -- lookup the canvas element in the DOM and store it 
+    -- in our mutable Ref. 
+    useEffect "once" $ unsafePartial do 
+      maybeEnv <- CanvasSupport.getCanvasEnvironment "canvas"
+      -- for some reason, this only seems to actually write when
+      -- I put it on its own line and do <-. Trying pure $ Refs.write (...) results 
+      -- in the ref never being modified 
+      _ <- Refs.write maybeEnv envRef
+      -- ditto for this. It only appears to actually run with the <- magic
+      _ <- case maybeEnv of  
+        Just context -> CanvasRenderer.render context.ctx state
+        Nothing -> pure unit 
+      _ <- case maybeEnv of  
+        Just context -> CanvasRenderer.render context.ctx state
+        Nothing -> pure unit 
+      pure (pure unit)
+
+    useLayoutEffect state $ unsafePartial do 
+      env <- Refs.read envRef 
+      -- Ok. Now evident that I don't know how things get executed. *Hours* lost on this line 
+      -- because when the <- is not there, it seemed to execute with an n-1 
+      -- view of the state, rather than the actual current state, which leads to 
+      -- absolutely bonkers behavior (like all hover behaviors being inverted)
+      -- finally traced it back to this. Baffling.. 
+      _ <- case env of 
+        Just context -> CanvasRenderer.render context.ctx state
+        Nothing -> pure unit 
+      pure (pure unit)
+
     pure $ fragment [
-      R.div_ [R.text "uhh..."]
+      R.div {children: [
+        R.div_ [
+          mainCanvas {dispatch},
+          controls {dispatch, fields: state.form}
+        ],
+        report 
+      ]}
     ]
-
--- application :: Component Unit 
--- application = do 
---   envRef <- spy "again?" $ Refs.new Nothing -- {canvas: Nothing, ctx: Nothing}
---   reducer' <- mkReducer reducer 
---   component "Reducer" \_ -> React.do
---     state /\ dispatch <- useReducer (Core.fromConfig initialState) reducer'
---     -- state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x: 0.0, y: 1.0}} reducer'
---     -- state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x:0.0, y:1.0}} reducer'
---     -- state /\ dispatch <- useReducer initialState reducer'
-
---     -- lookup the canvas element in the DOM and store it 
---     -- in our mutable Ref. 
---     useEffect "once" $ unsafePartial do 
---       maybeEnv <- CanvasSupport.getCanvasEnvironment "canvas"
---       -- for some reason, this only seems to actually write when
---       -- I put it on its own line and do <-. Trying pure $ Refs.write (...) results 
---       -- in the ref never being modified 
---       _ <- Refs.write maybeEnv envRef
---       -- ditto for this. It only appears to actually run with the <- magic
---       _ <- case maybeEnv of  
---         Just context -> CanvasRenderer.render context.ctx state
---         Nothing -> pure unit 
---       _ <- case maybeEnv of  
---         Just context -> CanvasRenderer.render context.ctx state
---         Nothing -> pure unit 
---       pure (pure unit)
-
-    
-
---     useLayoutEffect state $ unsafePartial do 
---       env <- Refs.read envRef 
---       -- Ok. Now evident that I don't know how things get executed. *Hours* lost on this line 
---       -- because when the <- is not there, it seemed to execute with an n-1 
---       -- view of the state, rather than the actual current state, which leads to 
---       -- absolutely bonkers behavior (like all hover behaviors being inverted)
---       -- finally traced it back to this. Baffling.. 
---       _ <- case env of 
---         Just context -> CanvasRenderer.render context.ctx state
---         Nothing -> pure unit 
---       pure (pure unit)
-
---     pure $ fragment [
---       R.div {children: [
---         R.div_ [
---           mainCanvas {dispatch},
---           controls {dispatch, fields: state.form}
---         ],
---         report 
---       ]}
---     ]

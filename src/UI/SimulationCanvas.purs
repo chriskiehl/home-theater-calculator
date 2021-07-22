@@ -19,7 +19,7 @@ type CanvasProps = {
 
 mainCanvas :: CanvasProps -> JSX
 mainCanvas {dispatch} = 
-  R.div {className: "boobie", children: [
+  R.div {className: "", children: [
     R.canvas {
       id: "canvas", 
       width: "896", 

@@ -2,6 +2,8 @@
 module Vector where 
 
 import Prelude hiding (div, add)
+
+import DegreeMath (Degree, cos, sin)
 import Math as Math
 
 
@@ -29,7 +31,11 @@ div a v = {x: v.x / a, y: v.y / a}
 scale :: Scalar -> Vector -> Vector
 scale a v = {x: v.x * a, y: v.y * a}
 
-
+rotate :: Vector -> Degree -> Vector 
+rotate v angle = v :**: a 
+  where 
+  a = {a1: cos angle,    a2: sin angle,
+       b1: -(sin angle), b2: cos angle}
 
 mag :: Vector -> Scalar 
 mag v = Math.sqrt ((v.x * v.x) + (v.y * v.y))
@@ -49,11 +55,8 @@ min :: Vector -> Vector -> Vector
 min v u = if (mag v) < (mag u) then v else u
 
 
-rotate :: Number -> Vector -> Vector 
-rotate angle v = {
-    x: v.x * Math.cos angle + v.y * (- Math.sin angle),
-    y: v.x * Math.sin angle + v.y * Math.cos angle}
-
+dist :: Vector -> Vector -> Number 
+dist v1 v2 = Math.sqrt $ (Math.pow (v2.x - v1.x) 2.0) + (Math.pow (v2.y - v1.y) 2.0)
 
 
 

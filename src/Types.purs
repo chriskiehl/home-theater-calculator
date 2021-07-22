@@ -7,7 +7,7 @@ import Data.Maybe (Maybe(..))
 import Vector (Vector, Vector3)
 import Web.HTML.HTMLElement (DOMRect)
 
--- | The Degree in an angle 
+-- | An angle as measured in degrees (rather than radians) 
 type Degree = Number 
 
 -- | An abitrary 2D position in any coordinate system
@@ -16,23 +16,35 @@ type Position = Vector
 -- | A position with its cartesian origin set to 
 -- | the top-left corner of the canvas
 type LocalPosition = Position 
+
+-- | A position where its origin is set to the top-center 
+-- | i.e. (0, 0) of the isometric coordinate system. 
+-- | Here, "local" is defined as 'roughly the middle of 
+-- | the canvas where things are redered' for most purposes
 type IsometricPosition = LocalPosition
 
--- | DOM event client position 
+-- | A raw DOM event client position. The is the current position 
+-- | relative to the user's browser window.  
 type ClientPosition = {clientX :: Int, clientY :: Int}
 
 
-type CanvasPosition = {
-  client :: Position, 
-  canvasRect :: DOMRect
-}
-
 type ScreenSize = Number 
 type DiagonalLength = Number 
+
+-- | Angle of the current "Field of View" based on 
+-- | the distance from the TV. 
 type FOV = Degree
 
+-- | Convenience type alias for our main map 
+-- | of sprites. 
+-- | Usage Note: it's a Map only because that's the only 
+-- | way I can figure out how to program updates against the 
+-- | collection of items in the map. Which is to say, in vanilla 
+-- | js, I'd use an object. The items within the map are fixed 
+-- | throughout the runtime of the app. 
 type SpriteMap = Map.Map SpriteID Sprite
 
+-- | IDs of the items in SpriteMap 
 data SpriteID
   = TV
   | LeftFront 
@@ -43,7 +55,11 @@ data SpriteID
   | Chair  
   | Placeholder 
 
--- | 
+-- | Sprites maintain a 'pure' position in space sans any offsets
+-- | or shifting to account for their actual size or shape. it's only during 
+-- | collision detection or rendering that we adjust their position based on 
+-- | where we want their sprite to be achored. 
+-- | This makes doing math between the sprites much, much easier. 
 data AnchorPosition 
   = CenterNorth
   | CenterSouth 
@@ -62,6 +78,8 @@ derive instance ordFormID :: Ord FormID
 derive instance eqAnchorPos :: Eq AnchorPosition
 derive instance ordAnchorPos :: Ord AnchorPosition
 
+
+
 type FormField a r = (
   id :: FormID, 
   value :: a,
@@ -74,8 +92,6 @@ type NumericField = Record (FormField Int ())
 type SelectField = Record (FormField String (options :: Array String))
 
 type Geometry = {
-  radius :: Number, 
-  center :: Vector,
   width :: Number,
   depth :: Number 
 }
@@ -89,7 +105,8 @@ type Sprite = {
   images :: Images, 
   isBeingDragged :: Boolean,
   size :: Vector3,
-  anchor :: AnchorPosition
+  anchor :: AnchorPosition,
+  enabled :: Boolean
 }
 
 type AspectRatio = {
@@ -106,9 +123,9 @@ type FormFields = {
   mode :: SelectField,
   roomWidth :: NumericField, 
   roomDepth :: NumericField, 
-  channels :: SelectField,
+  channels :: SelectField, 
   screenSize :: NumericField, 
-  aspectRatio :: SelectField
+  aspectRatio :: SelectField 
 }
 
 type TvSpecs = {
@@ -118,10 +135,42 @@ type TvSpecs = {
 
 type ApplicationState = {
   tvSpecs :: TvSpecs,
-  sprites :: Map.Map SpriteID Sprite,
+  sprites :: SpriteMap,
   geometry :: Geometry,
   form :: FormFields
 }
+
+-- | Every layout / configuration boils down to placing some sprites 
+-- | at specifc locations around a circle. As such, knowing the radius 
+-- | of that circle + where it's centered in the world is all that's 
+-- | needed to power the various layout strategies. 
+type LayoutDescriptor = {
+  center :: Position, 
+  radius :: Number
+}
+
+type LineSegment = {p1 :: Vector, p2 :: Vector}
+
+type WallInteractionPoints = {
+  a :: Position, 
+  b :: Position, 
+  c :: Position, 
+  d :: Position, 
+  e :: Position,
+  f :: Position, 
+  g :: Position, 
+  h :: Position, 
+  i :: Position, 
+  j :: Position
+}
+
+type PrimaryReflections = {
+ firstReflection :: {source :: Position, reflection :: Position, dest :: Position},
+ secondReflection :: {source :: Position, reflection :: Position, dest :: Position},
+ thirdReflection :: {source :: Position, reflection :: Position, dest :: Position}
+}
+
+
 
 data FormID = Channels | Width | Depth | ScreenSize | AspectRatio | SimulationMode
 

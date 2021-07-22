@@ -3,8 +3,10 @@ module DegreeMath where
 import Prelude
 
 import Math as Math
-import Types (Degree)
 
+
+-- | An angle as measured in degrees (rather than radians) 
+type Degree = Number 
 
 toRadians :: Degree -> Number 
 toRadians x = x * (Math.pi / 180.0)

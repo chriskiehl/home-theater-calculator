@@ -1,10 +1,11 @@
 -- | Various tooling and utils for debugging 
--- | sprite intereactions and hitboxes 
+-- | sprite intereactions and hitboxes and other 
+-- | random dev stuff 
 module Debugging where
 
 import Prelude
 
-import Core (WallInteractionPoints, PrimaryReflections, toIso)
+import Coordinates (isoTransform, toIso)
 import Core as Core
 import Data.Foldable (foldl, for_)
 import Data.List (List)
@@ -14,7 +15,8 @@ import DegreeMath (atan, cos)
 import Effect (Effect)
 import Graphics.Canvas (Context2D)
 import Graphics.Canvas as Canvas
-import Types (Sprite, SpriteID(..), ApplicationState)
+import Reflections (collectInteractionPoints, leftReflections, rightReflections)
+import Types (ApplicationState, Sprite, SpriteID(..), WallInteractionPoints, PrimaryReflections)
 import Utils (unsafeLookup)
 import Vector ((:**:), (:*:), (:+:), (:-:))
 
@@ -22,13 +24,13 @@ spriteSize = 16.0
 
 paintRed :: Context2D -> Number -> Number -> Effect Unit
 paintRed ctx x y = do 
-  let v =  ((spriteSize :*: {x, y}) :**: Core.isoTransform) :+: {x: 448.0, y: 250.0}
+  let v =  ((spriteSize :*: {x, y}) :**: isoTransform) :+: {x: 448.0, y: 250.0}
   Canvas.setFillStyle ctx "red"
   Canvas.fillRect ctx {x: v.x, y: v.y, width: 1.0, height: 1.0}
 
 paintBlue :: Context2D -> Number -> Number -> Effect Unit 
 paintBlue ctx x y = do 
-  let v =  ((spriteSize :*: {x, y}) :**: Core.isoTransform) :+: {x: 448.0, y: 250.0}
+  let v =  ((spriteSize :*: {x, y}) :**: isoTransform) :+: {x: 448.0, y: 250.0}
   Canvas.setFillStyle ctx "blue"          
   Canvas.fillRect ctx {x: v.x, y: v.y, width: 1.0, height: 1.0}
 
@@ -52,16 +54,16 @@ outlineFootprint :: Context2D -> Sprite -> Effect Unit
 outlineFootprint ctx s = do 
   let {topLeft, topRight, bottomLeft, bottomRight} = Core.footprint s 
   Canvas.setFillStyle ctx "purple"
-  Canvas.fillRect ctx {x: (Core.toIso bottomLeft).x, y: (Core.toIso bottomLeft).y, width: 2.0, height: 2.0}
-  Canvas.fillRect ctx {x: (Core.toIso bottomRight).x, y: (Core.toIso bottomRight).y, width: 2.0, height: 2.0}
-  Canvas.fillRect ctx {x: (Core.toIso topLeft).x, y: (Core.toIso topLeft).y, width: 2.0, height: 2.0}
-  Canvas.fillRect ctx {x: (Core.toIso topRight).x, y: (Core.toIso topRight).y, width: 2.0, height: 2.0}
+  Canvas.fillRect ctx {x: (toIso bottomLeft).x, y: (toIso bottomLeft).y, width: 2.0, height: 2.0}
+  Canvas.fillRect ctx {x: (toIso bottomRight).x, y: (toIso bottomRight).y, width: 2.0, height: 2.0}
+  Canvas.fillRect ctx {x: (toIso topLeft).x, y: (toIso topLeft).y, width: 2.0, height: 2.0}
+  Canvas.fillRect ctx {x: (toIso topRight).x, y: (toIso topRight).y, width: 2.0, height: 2.0}
 
 anyOfEm :: Number -> Number -> List Sprite -> Boolean 
 anyOfEm x y sprites = foldl (\acc val -> if val then val else acc) false aany
   where 
   sprites_' = map (\x -> x{pos=x.pos }) sprites 
-  aany = map (Core.inBoundsDebug {x, y}) sprites
+  aany = map (Core.inBounds {x, y}) sprites
 
 
 
@@ -90,18 +92,18 @@ traceActualTvSize ctx state = do
 
 drawAllReflectionsBy :: (WallInteractionPoints -> PrimaryReflections) -> Context2D -> ApplicationState -> Effect Unit 
 drawAllReflectionsBy f ctx state = do 
-  let {firstReflection, secondReflection, thirdReflection} = f $ Core.collectReflectionPoints state.sprites state.geometry
-  let frs = Core.toIso firstReflection.source
-  let frd = Core.toIso firstReflection.dest
-  let frr = Core.toIso firstReflection.reflection
+  let {firstReflection, secondReflection, thirdReflection} = f $ collectInteractionPoints state.sprites state.geometry
+  let frs = toIso firstReflection.source
+  let frd = toIso firstReflection.dest
+  let frr = toIso firstReflection.reflection
 
-  let srs = Core.toIso secondReflection.source
-  let srd = Core.toIso secondReflection.dest
-  let srr = Core.toIso secondReflection.reflection
+  let srs = toIso secondReflection.source
+  let srd = toIso secondReflection.dest
+  let srr = toIso secondReflection.reflection
 
-  let trs = Core.toIso thirdReflection.source
-  let trd = Core.toIso thirdReflection.dest
-  let trr = Core.toIso thirdReflection.reflection
+  let trs = toIso thirdReflection.source
+  let trd = toIso thirdReflection.dest
+  let trr = toIso thirdReflection.reflection
   
   Canvas.beginPath ctx 
   -- Canvas.setLineWidth ctx 3.0
@@ -122,10 +124,10 @@ drawAllReflectionsBy f ctx state = do
 
 
 drawLeftReflections :: Context2D -> ApplicationState -> Effect Unit  
-drawLeftReflections = drawAllReflectionsBy Core.leftReflections
+drawLeftReflections = drawAllReflectionsBy leftReflections
 
 drawRightReflections :: Context2D -> ApplicationState -> Effect Unit  
-drawRightReflections = drawAllReflectionsBy Core.rightReflections
+drawRightReflections = drawAllReflectionsBy rightReflections
 
 drawAllReflections :: Context2D -> ApplicationState -> Effect Unit  
 drawAllReflections ctx state = do 
