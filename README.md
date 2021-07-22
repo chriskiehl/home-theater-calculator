@@ -16,7 +16,7 @@ yarn run dev
 This basically a glorified basic trig calculator that does two things: 
 
 1. gives idealized theater / studio layouts for the parameters chosen (where "ideal" is defined by various FOV and audio config guidelines from THC and the ITU-R peeps)
-2. Computes primary reflection points for those setups so you can nerd out and put up bass traps / transfusers / etc.. 
+2. Computes primary reflection points for those setups so you can nerd out and put up bass traps / diffusers / etc.. 
 
 
 ### Notable Modules: 
