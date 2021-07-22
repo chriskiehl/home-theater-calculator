@@ -18,6 +18,7 @@ import Effect.Class (liftEffect)
 import Effect.Console (log)
 import Effect.Ref as Refs
 import Graphics.Canvas (CanvasElement, Context2D)
+import InitialState (initialState)
 import ParseInt (parseInt)
 import Partial.Unsafe (unsafePartial)
 import React.Basic.DOM (css)
@@ -35,70 +36,6 @@ import Types (Action(..), AnchorPosition(..), ApplicationState, AudioChannels(..
 import Unsafe.Coerce (unsafeCoerce)
 import Utils (unsafeLookup)
 
-initialWidth = 13
-initialDepth = 15
-initialScreenSize = 50
-
-initialGeometry :: Geometry
-initialGeometry = {
-  width: toNumber initialWidth, 
-  depth: toNumber initialDepth
-}
-
-defaultSpecs :: TvSpecs
-defaultSpecs = {
-  screenSize: toNumber initialScreenSize,
-  aspectRatio: {width: 16.0, height: 9.0}
-}
-
--- theaterOptions = {
---   fields: [Width, Depth],
---   homeTheater +
--- }
-
-{-
-
-Studio: 
- - limit 2 channels 
-  - no collision on rear or center
-  - no tv collision
-  - center movement keeps speakers inline with "tv" (even though not visible)
- - only width/depth options in form 
-
-Theater: 
- - all options 
- - 2.0 mode: 
-  - collision on fronts
-  - collision on tv 
-  - center movement keeps speakers inline with tv
-    - i.e. radius is computed as a cos 30deg angle 
- - 5.0 mode: 
-  - collision on front, center, rear, and TV 
-  - center movement treats tv as radius and adjust speakers accordingly. 
--}
-
-initialState :: ApplicationState
-initialState = {
-  sprites: Map.fromFoldable [
-    Tuple Chair       Sprites.blockSprite{id=Chair, pos={x: 0.0, y: 0.0}},
-    Tuple LeftFront   Sprites.twoStackSprite{id=LeftFront},
-    Tuple RightFront  Sprites.twoStackSprite{id=RightFront},
-    Tuple TV          Sprites.threeBlockTwoZSprite{id=TV, pos={x: 3.0/2.0, y: 0.0}},
-    Tuple LeftRear    Sprites.twoStackSprite{id=LeftRear, anchor=CenterEast},
-    Tuple RightRear   Sprites.twoStackSprite{id=RightRear, anchor=CenterWest}
-  ],
-  geometry: initialGeometry,
-  tvSpecs: defaultSpecs,
-  form: {
-    mode: {id: SimulationMode, value: "Home Theater", error: Nothing, options: ["Home Theater", "Studio"]},
-    roomWidth: {id: Width, value: initialWidth, error: Nothing},
-    roomDepth: {id: Depth, value: initialDepth, error: Nothing},
-    channels: {id: Channels, value: "2.0", error: Nothing, options: ["2.0", "5.0"]},
-    screenSize: {id: ScreenSize, value: initialScreenSize, error: Nothing},
-    aspectRatio: {id: AspectRatio, value: "16:9", error: Nothing, options: ["16:9", "2.4:1"]}
-  }
-}
-
 
 reducer :: ApplicationState -> Action -> ApplicationState 
 reducer state action = case action of 
@@ -109,20 +46,21 @@ reducer state action = case action of
   _ -> state 
 
 
+-- | Entry point to our main React app. 
+-- | 
+-- | For the most part, it's an html form and a Cavnas element. The bulk 
+-- | of the logic lives in the Reducer, and the the bulk of the interesting 
+-- | stuff inside of the movement handlers. 
 application :: Component Unit 
 application = do 
-  envRef <- spy "again?" $ Refs.new Nothing -- {canvas: Nothing, ctx: Nothing}
+  envRef <- spy "again?" $ Refs.new Nothing 
   reducer' <- mkReducer reducer 
 
   component "Reducer" \_ -> React.do
     state /\ dispatch <- useReducer (Core.layoutFromConfig initialState) reducer'
-    -- state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x: 0.0, y: 1.0}} reducer'
-    -- state /\ dispatch <- useReducer initialState{sprites=Core.translateSprites (Core.layoutSprites initialState.sprites initialState.geometry) {x:0.0, y:1.0}} reducer'
-    -- state /\ dispatch <- useReducer initialState reducer'
-
-
     -- lookup the canvas element in the DOM and store it 
     -- in our mutable Ref. 
+    -- I don't know how else to make this work... 
     useEffect "once" $ unsafePartial do 
       maybeEnv <- CanvasSupport.getCanvasEnvironment "canvas"
       -- for some reason, this only seems to actually write when
