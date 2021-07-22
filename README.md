@@ -2,6 +2,8 @@
 
 tl;dr: a wip toy for finding useful measurements related to home theater / studio setup. 
 
+![image](https://user-images.githubusercontent.com/1408720/126683610-9b9cb055-abee-4ec4-94df-521908b3cc9c.png)
+
 
 ### Running
 
