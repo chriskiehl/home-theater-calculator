@@ -6,7 +6,7 @@
   },
   "devDependencies": {
     "parcel-bundler": "^1.12.5",
-    "purescript": "^0.14.2",
+    "purescript": "^0.14.3",
     "spago": "^0.20.3"
   },
   "dependencies": {
