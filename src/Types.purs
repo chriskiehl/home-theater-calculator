@@ -253,24 +253,20 @@ type PrimaryReflections = {
 
 data FormID = Channels | Width | Depth | ScreenSize | AspectRatio | SimulationMode
 
-data AudioChannels 
-    = Channels2_0
-    | Channels2_1
-    | Channels5_1
+
+data AudioChannels = TwoDot | FiveDot 
 
 
 instance showAudioChannels :: Show AudioChannels where 
   show x = case x of 
-    Channels2_0 -> "2.0"
-    Channels2_1 -> "2.1"
-    Channels5_1 -> "5.1"
+    TwoDot -> "2.0"
+    FiveDot -> "5.0"
 
 
 instance parseAudioChannels :: ParseRaw AudioChannels where 
   parseString s = case s of 
-    "2.0" -> Just Channels2_0 
-    "2.1" -> Just Channels2_1
-    "5.1" -> Just Channels5_1
+    "2.0" -> Just TwoDot 
+    "5.0" -> Just FiveDot 
     _ -> Nothing 
 
 
@@ -288,5 +284,9 @@ data Action
 
 
 
-data Mode = HomeTheater | AudioStudio
+data Mode = HomeTheater | Studio
+
+instance showMode :: Show Mode where 
+  show HomeTheater = "Home Theater" 
+  show Studio = "Studio"  
 

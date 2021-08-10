@@ -79,9 +79,9 @@ handleHover cursorPos state = state{sprites=map (setHovering cursorPos) state.sp
 -- Thus: the repeated boilerplate below. 
 updateField :: ApplicationState -> FormID -> String -> ApplicationState
 updateField state id value = case id of 
-  SimulationMode -> updateMode state value 
+  SimulationMode -> fromMaybe state $ (updateMode state) <$> (parseMode value)
   Channels -> case (parseChannel value) of 
-    Just _ -> updateChannels (state{form{channels{value=value}}}) value
+    Just channel -> updateChannels (state{form{channels{value=value}}}) channel
     Nothing -> state{form{channels{error=Just "Invalid input"}}}
   Width -> case (parseRoomDimension value) of 
     Just width -> baselineXPosition $ state{form{roomWidth{value=width}}, geometry{width=(toNumber width)}}
@@ -97,16 +97,23 @@ updateField state id value = case id of
     Nothing -> state{form{aspectRatio{error=Just "Unknown aspect ratio"}}}
 
 
-updateMode :: ApplicationState -> String -> ApplicationState 
+parseMode :: String -> Maybe Mode 
+parseMode raw = case raw of 
+  "Home Theater" -> Just HomeTheater 
+  "Studio" -> Just Studio
+  _ -> Nothing 
+
+
+updateMode :: ApplicationState -> Mode -> ApplicationState 
 updateMode state mode = case mode of 
-  "Home Theater" -> updateChannels (state{form{mode{value=mode}}, sprites=map _{enabled=true} state.sprites}) state.form.channels.value 
-  _ -> state{form{mode{value=mode}}, sprites=disable [TV, LeftRear, RightRear] state.sprites}
+  HomeTheater -> state{form{mode{value=(show mode)}, channels{value="5.0"}}, sprites=map _{enabled=true} state.sprites}
+  Studio -> state{form{mode{value=(show mode)}, channels{value="2.0"}}, sprites=disable [TV, LeftRear, RightRear] state.sprites}
 
 
-updateChannels :: ApplicationState -> String -> ApplicationState 
-updateChannels state value = case (spy "channel?" value) of 
-  "2.0" -> state{sprites=(enable [LeftFront, RightFront] state.sprites) # (disable [LeftRear, RightRear])} 
-  _ -> state{sprites=map _{enabled=true} state.sprites}
+updateChannels :: ApplicationState -> AudioChannels -> ApplicationState 
+updateChannels state channel = case (spy "channel?" channel) of 
+  TwoDot  -> state{sprites=(enable [LeftFront, RightFront] state.sprites) # (disable [LeftRear, RightRear])} 
+  FiveDot -> state{sprites=map _{enabled=true} state.sprites}
 
 
 baselineXPosition :: ApplicationState -> ApplicationState 
@@ -367,8 +374,8 @@ anchorCenterWest s = s{pos=northCenter}
 
 parseChannel :: String -> Maybe AudioChannels
 parseChannel s = case s of 
-  "2.0" -> Just Channels2_0
-  "5.0" -> Just Channels5_1
+  "2.0" -> Just TwoDot 
+  "5.0" -> Just FiveDot 
   _ -> Nothing 
 
 
