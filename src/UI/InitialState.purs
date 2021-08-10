@@ -6,7 +6,7 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Prelude ((/))
 import Sprites as Sprites
-import Types (AnchorPosition(..), ApplicationState, FormID(..), Geometry, SpriteID(..), TvSpecs)
+import Types (AnchorPosition(..), ApplicationState, FormID(..), Geometry, SpriteID(..), SpriteMap(..), TvSpecs)
 
 initialWidth = 13
 initialDepth = 15
@@ -27,14 +27,14 @@ defaultSpecs = {
 
 initialState :: ApplicationState
 initialState = {
-  sprites: Map.fromFoldable [
-    Tuple Chair       Sprites.blockSprite{id=Chair, pos={x: 0.0, y: 0.0}},
-    Tuple LeftFront   Sprites.twoStackSprite{id=LeftFront},
-    Tuple RightFront  Sprites.twoStackSprite{id=RightFront},
-    Tuple TV          Sprites.threeBlockTwoZSprite{id=TV, pos={x: 3.0/2.0, y: 0.0}},
-    Tuple LeftRear    Sprites.twoStackSprite{id=LeftRear, anchor=CenterEast},
-    Tuple RightRear   Sprites.twoStackSprite{id=RightRear, anchor=CenterWest}
-  ],
+  sprites: SpriteMap {
+    chair: Sprites.blockSprite{id=Chair, pos={x: 0.0, y: 0.0}},
+    leftFront: Sprites.twoStackSprite{id=LeftFront},
+    rightFront: Sprites.twoStackSprite{id=RightFront},
+    tv: Sprites.threeBlockTwoZSprite{id=TV, pos={x: 3.0/2.0, y: 0.0}},
+    leftRear: Sprites.twoStackSprite{id=LeftRear, anchor=CenterEast},
+    rightRear: Sprites.twoStackSprite{id=RightRear, anchor=CenterWest}
+  },
   geometry: initialGeometry,
   tvSpecs: defaultSpecs,
   form: {

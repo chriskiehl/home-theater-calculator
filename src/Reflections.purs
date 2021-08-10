@@ -34,7 +34,7 @@ module Reflections where
 
 import Prelude
 
-import Types (Geometry, Position, SpriteID(..), SpriteMap, WallInteractionPoints, PrimaryReflections)
+import Types (Geometry, Position, PrimaryReflections, SpriteID(..), SpriteMap(..), WallInteractionPoints, Sprite)
 import Utils (unsafeLookup)
 
 
@@ -93,12 +93,12 @@ rightReflections {a, b, c, d, e, f, g, h, i, j} = {firstReflection, secondReflec
 --   |                    |
 --   +-----o---o---o------+
 --         h   i   j
-collectInteractionPoints :: SpriteMap -> Geometry -> WallInteractionPoints
-collectInteractionPoints sprites {width, depth} = {a, b, c, d, e, f, g, h, i, j}
+collectInteractionPoints :: SpriteMap Sprite -> Geometry -> WallInteractionPoints
+collectInteractionPoints (SpriteMap sprites) {width, depth} = {a, b, c, d, e, f, g, h, i, j}
   where 
-  f = (unsafeLookup Chair sprites).pos
-  b = (unsafeLookup LeftFront sprites).pos 
-  c = (unsafeLookup RightFront sprites).pos 
+  f = sprites.chair.pos
+  b = sprites.leftFront.pos 
+  c = sprites.rightFront.pos 
   a = {x: 0.0, y: b.y}
   d = {x: width, y: b.y}
   e = {x: 0.0, y: f.y}

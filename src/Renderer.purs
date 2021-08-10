@@ -20,7 +20,7 @@ import Graphics.Canvas (Context2D)
 import Graphics.Canvas as Canvas
 import Math ((%))
 import Sprites as Sprites
-import Types (AnchorPosition(..), ApplicationState, Degree, Sprite, SpriteID(..))
+import Types (AnchorPosition(..), ApplicationState, Degree, Sprite, SpriteID(..), SpriteMap(..), values, valuesL)
 import Utils (unsafeLookup)
 import Vector (Matrix2D, Vector, dist, rotate, (:**:), (:*:), (:+:), (:-:))
 
@@ -34,7 +34,7 @@ render ctx state = do
   -- drawLines ctx state 
   renderSprites ctx state
   -- highlightHitboxes ctx state
-  for_ (M.values state.sprites) (outlineFootprint ctx)
+  for_ (values state.sprites) (outlineFootprint ctx)
   traceActualTvSize ctx state 
   -- drawFirstReflections ctx state 
   -- drawRearReflections ctx state 
@@ -59,12 +59,12 @@ tilebackground ctx = do
 
 renderSprites :: Context2D -> ApplicationState -> Effect Unit 
 renderSprites ctx state = do 
-  for_ (reverse (sortBy (\a b -> compare b.pos.x a.pos.x ) (M.values state.sprites))) \s -> 
+  for_ (reverse (sortBy (\a b -> compare b.pos.x a.pos.x ) (valuesL state.sprites))) \s -> 
     let sprt = Core.anchorAdjusted s
     in if sprt.enabled then drawSprite ctx sprt else pure unit -- {pos=(sprt.pos :-: sprt.originOffset)}
 
   Canvas.setFillStyle ctx "red"
-  for_ (M.values state.sprites) \s -> 
+  for_ (values state.sprites) \s -> 
     let ss = ((16.0 :*: (s.pos)) :**: isoTransform) :+: {x: 448.0, y: 250.0} 
     in Canvas.fillRect ctx {x: ss.x, y: ss.y, width: 2.0, height: 2.0}
 
@@ -98,9 +98,9 @@ drawLines :: Context2D -> ApplicationState -> Effect Unit
 drawLines ctx state = do 
   -- for_ [30.0, -30.0, 120.0, -120.0] \deg -> do  
   --for_ [0.0, 30.0, -30.0, 90.0, -90.0, 180.0] \deg -> do  
-  let sprites = state.sprites
-  let center = (unsafeLookup Chair sprites)
-  let tv = (unsafeLookup TV sprites) 
+  let SpriteMap sprites = state.sprites
+  let center = sprites.chair
+  let tv = sprites.tv 
   let d = dist center.pos tv.pos 
   let r = d / (cos 30.0 )
   for_ (Array.range 0 360) \degNum -> do  

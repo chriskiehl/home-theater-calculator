@@ -2,13 +2,23 @@ module Types where
 
 import Prelude
 
+import Data.Array as Array
+import Data.Foldable (class Foldable)
+import Data.Functor.App (App)
+import Data.List as List
+import Data.List (List(..))
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
+import Data.Symbol (SProxy(..))
+import Record (get)
+import Record.Extra (mapRecord)
+import Type.Proxy (Proxy(..))
 import Vector (Vector, Vector3)
 import Web.HTML.HTMLElement (DOMRect)
 
--- | An angle as measured in degrees (rather than radians) 
+
 type Degree = Number 
+
 
 -- | An abitrary 2D position in any coordinate system
 type Position = Vector 
@@ -33,16 +43,11 @@ type DiagonalLength = Number
 
 -- | Angle of the current "Field of View" based on 
 -- | the distance from the TV. 
-type FOV = Degree
+type FOV = Number
 
--- | Convenience type alias for our main map 
--- | of sprites. 
--- | Usage Note: it's a Map only because that's the only 
--- | way I can figure out how to program updates against the 
--- | collection of items in the map. Which is to say, in vanilla 
--- | js, I'd use an object. The items within the map are fixed 
--- | throughout the runtime of the app. 
-type SpriteMap = Map.Map SpriteID Sprite
+
+type Base64Data = String 
+
 
 -- | IDs of the items in SpriteMap 
 data SpriteID
@@ -71,6 +76,7 @@ data AnchorPosition
   | TrueOrigin
   | LogicalOrigin 
 
+
 derive instance eqSpriteId :: Eq SpriteID  
 derive instance ordSpriteId :: Ord SpriteID  
 derive instance eqFormID :: Eq FormID
@@ -95,6 +101,73 @@ type Geometry = {
   width :: Number,
   depth :: Number 
 }
+
+-- | Record of all the primary notable sprites used throughout the application. 
+newtype SpriteMap a = SpriteMap {
+  chair :: a,
+  leftFront :: a,
+  rightFront :: a, 
+  tv :: a, 
+  leftRear :: a, 
+  rightRear :: a 
+}
+
+
+instance functorSpriteMap :: Functor SpriteMap where 
+  map f (SpriteMap sm) = SpriteMap $ mapRecord f sm 
+
+
+instance pureSpriteMap :: Applicative SpriteMap where 
+  pure f = SpriteMap {
+    chair: f, 
+    leftFront: f,
+    rightFront: f, 
+    tv: f, 
+    leftRear: f, 
+    rightRear: f
+  }
+
+
+instance applicativeSpriteMap :: Apply SpriteMap where 
+  apply (SpriteMap fm) (SpriteMap sm) = SpriteMap {
+    chair: fm.chair sm.chair,
+    leftFront: fm.leftFront sm.leftFront,
+    rightFront: fm.rightFront sm.rightFront, 
+    tv: fm.tv sm.tv, 
+    leftRear: fm.leftRear sm.leftRear, 
+    rightRear: fm.rightRear sm.rightRear
+  }
+
+
+instance foldableSpriteMap :: Foldable SpriteMap where 
+  foldr f init xs = Array.foldr f init (values xs) 
+  foldl f init xs = Array.foldl f init (values xs) 
+  foldMap f xs = Array.foldMap f (values xs)
+
+
+instance showSpriteMap :: (Show a) => Show (SpriteMap a) where 
+  show (SpriteMap sm) = (show sm)
+
+derive instance eqSpriteMap :: (Eq a) => Eq (SpriteMap a)
+derive instance ordSpriteMap :: (Ord a) => Ord (SpriteMap a)
+
+
+values :: forall a. SpriteMap a -> Array a  
+values (SpriteMap sm) = [sm.chair, sm.tv, sm.leftFront,sm.rightFront, sm.leftRear, sm.rightRear]
+
+valuesL :: forall a. SpriteMap a -> List a 
+valuesL sm = List.fromFoldable $ values sm
+
+-- -- | Convenience type alias for our main map 
+-- -- | of sprites. 
+-- -- | Usage Note: it's a Map only because that's the only 
+-- -- | way I can figure out how to program updates against the 
+-- -- | collection of items in the map. Which is to say, in vanilla 
+-- -- | js, I'd use an object. The items within the map are fixed 
+-- -- | throughout the runtime of the app. 
+-- type SpriteMap = Map.Map SpriteID Sprite
+
+
 
 type Sprite = {
   id :: SpriteID,
@@ -135,7 +208,7 @@ type TvSpecs = {
 
 type ApplicationState = {
   tvSpecs :: TvSpecs,
-  sprites :: SpriteMap,
+  sprites :: SpriteMap Sprite,
   geometry :: Geometry,
   form :: FormFields
 }
@@ -151,6 +224,12 @@ type LayoutDescriptor = {
 
 type LineSegment = {p1 :: Vector, p2 :: Vector}
 
+
+-- | Models a room and objects within it as a collection 
+-- | of notable points. This is used for computing the points 
+-- | along the walls where waves emitted by a speaker would be 
+-- | reflected back to the listener. 
+-- | See Reflections.purs for full diagram of usage. 
 type WallInteractionPoints = {
   a :: Position, 
   b :: Position, 

@@ -1,5 +1,6 @@
 module Core where 
 
+import Coordinates
 import Prelude
 
 import Data.Array (elem)
@@ -10,10 +11,9 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Debug (spy)
 import DegreeMath (atan, cos, sin, tan)
-import Coordinates
 import Math as Math
 import ParseInt (parseBase10)
-import Types (AnchorPosition(..), ApplicationState, AspectRatio, AudioChannels(..), Degree, FOV, FormID(..), Geometry, LayoutDescriptor, LocalPosition, Mode(..), Position, Sprite, SpriteID(..), SpriteMap, TvSpecs)
+import Types (AnchorPosition(..), ApplicationState, AspectRatio, AudioChannels(..), Degree, FOV, FormID(..), Geometry, LayoutDescriptor, LocalPosition, Mode(..), Position, Sprite, SpriteID(..), SpriteMap(..), TvSpecs, values)
 import Utils (unsafeLookup, (&&&&), (.<<.), (||||))
 import Vector (Matrix2D, Vector, dist, (:**:), (:*:), (:+:), (:-:), rotate)
 
@@ -48,8 +48,8 @@ dispatchDrag state v s = case s.id of
 
 
 onMove 
-  :: (SpriteMap -> Vector -> SpriteMap) 
-  -> (SpriteMap -> Boolean) 
+  :: (SpriteMap Sprite -> Vector -> SpriteMap Sprite) 
+  -> (SpriteMap Sprite -> Boolean) 
   -> Sprite 
   -> LocalPosition 
   -> ApplicationState
@@ -112,7 +112,8 @@ updateChannels state value = case (spy "channel?" value) of
 baselineXPosition :: ApplicationState -> ApplicationState 
 baselineXPosition state = state{sprites=nextSprites} 
   where 
-  delta = (state.geometry.width / 2.0) - (unsafeLookup Chair state.sprites).pos.x 
+  (SpriteMap sprites) = state.sprites 
+  delta = (state.geometry.width / 2.0) - sprites.chair.pos.x 
   nextSprites = translateSprites state.sprites {x: delta, y: 0.0}
 
 
@@ -124,7 +125,7 @@ spriteInBounds :: LocalPosition -> Sprite -> Boolean
 spriteInBounds pos s = inBounds (localToIso pos) s
 
 
-isCollidingWithBoundaries :: Geometry -> SpriteMap -> Boolean 
+isCollidingWithBoundaries :: Geometry -> SpriteMap Sprite -> Boolean 
 isCollidingWithBoundaries {depth} sprites = not (allInBounds)
   where 
   isInBounds :: Sprite -> Boolean 
@@ -133,24 +134,24 @@ isCollidingWithBoundaries {depth} sprites = not (allInBounds)
     {bottomLeft, topLeft} = footprint s
     inBounds = bottomLeft.y <= depth && bottomLeft.x >= 0.0
       && topLeft.y >= 0.0 && topLeft.x >= 0.0
-  allInBounds = foldl (\acc s -> acc && (isInBounds s)) true (Map.values sprites)
+  allInBounds = foldl (\acc s -> acc && (isInBounds s)) true (values sprites)
 
 
-areSpeakersColliding :: SpriteMap -> Boolean 
-areSpeakersColliding sprites = colliding 
+areSpeakersColliding :: SpriteMap Sprite -> Boolean 
+areSpeakersColliding (SpriteMap sprites) = colliding 
   where 
-  leftFront = footprint (unsafeLookup LeftFront sprites)
-  rightFront = footprint (unsafeLookup RightFront sprites)
+  leftFront = footprint sprites.leftFront
+  rightFront = footprint sprites.rightFront
   colliding = leftFront.bottomRight.x >= rightFront.bottomLeft.x 
 
 -- | TODO: needs to take the actual ISO size of the TV into consideration for 
 -- | actual collision math. Currently just uses the size of the placeholder sprite
-isCollidingWithTv :: TvSpecs -> SpriteMap -> Boolean 
-isCollidingWithTv tv sprites = if (unsafeLookup TV sprites).enabled then leftFront.bottomRight.x >= tvSprite.bottomLeft.x else false 
+isCollidingWithTv :: TvSpecs -> SpriteMap Sprite -> Boolean 
+isCollidingWithTv tv (SpriteMap sprites) = if sprites.tv.enabled then leftFront.bottomRight.x >= tvSprite.bottomLeft.x else false 
   where 
   {screenSize, aspectRatio} = tv
-  leftFront = footprint (unsafeLookup LeftFront sprites)
-  tvSprite = footprint (unsafeLookup TV sprites)
+  leftFront = footprint sprites.leftFront 
+  tvSprite = footprint sprites.tv
   diagonalDegrees = atan (aspectRatio.height / aspectRatio.width )
   screenWidth = (cos diagonalDegrees) * screenSize 
   isoWidth = (cos 30.0) * screenWidth / 16.0
@@ -225,12 +226,12 @@ footprint s = {topLeft, topRight, bottomLeft, bottomRight}
   bottomRight = bottomLeft :+: {x: s.size.x, y: 0.0}
 
 
-fieldOfView :: SpriteMap -> TvSpecs -> FOV 
-fieldOfView sprites specs = angle * 2.0
+fieldOfView :: SpriteMap Sprite -> TvSpecs -> FOV 
+fieldOfView (SpriteMap sprites) specs = angle * 2.0
   where 
   halfScreenWidth = (screenWidth specs) / 2.0 
-  center = unsafeLookup Chair sprites
-  tv = unsafeLookup TV sprites
+  center = sprites.chair
+  tv = sprites.tv
   distance = (dist center.pos tv.pos) * 16.0
   angle = atan (halfScreenWidth / distance)
   
@@ -259,28 +260,27 @@ computeLayout state = {center, radius}
   center = {x: width/2.0, y: distance + wallOffset}
 
 
-recenterSpritesByDelta :: SpriteMap -> Vector -> SpriteMap 
-recenterSpritesByDelta sprites delta = recenterSprites sprites {center: newCenter, radius} 
+recenterSpritesByDelta :: SpriteMap Sprite -> Vector -> SpriteMap Sprite 
+recenterSpritesByDelta (SpriteMap sprites) delta = recenterSprites (SpriteMap sprites) {center: newCenter, radius} 
   where 
-  currentCenter = (unsafeLookup Chair sprites) 
-  tv = (unsafeLookup TV sprites) 
+  currentCenter = sprites.chair 
+  tv = sprites.tv 
   newCenter = currentCenter.pos :+: delta  
   distance = (dist newCenter tv.pos) 
   radius = distance / (cos 30.0) 
 
 
-recenterSprites :: SpriteMap -> LayoutDescriptor -> SpriteMap 
-recenterSprites sprites layout = Map.union updates sprites 
+recenterSprites :: SpriteMap Sprite -> LayoutDescriptor -> SpriteMap Sprite 
+recenterSprites (SpriteMap sprites) layout = SpriteMap {
+    chair: sprites.chair{pos=layout.center},
+    tv: sprites.tv{pos={x: layout.center.x, y: layout.center.y - tvDistance}},
+    leftFront: positionSpriteNEW sprites.leftFront layout (-30.0),
+    rightFront: positionSpriteNEW sprites.rightFront layout (30.0),
+    rightRear: positionSpriteNEW sprites.rightRear layout (110.0),
+    leftRear: positionSpriteNEW sprites.leftRear layout (-110.0)
+  }
   where 
   tvDistance = (cos 30.0) * layout.radius
-  updates = Map.fromFoldable [
-    Tuple Chair $ (unsafeLookup Chair sprites){pos=layout.center},
-    Tuple TV    (unsafeLookup TV sprites){pos={x: layout.center.x, y: layout.center.y - tvDistance}},
-    Tuple LeftFront $ positionSpriteNEW (unsafeLookup LeftFront sprites) layout (-30.0),
-    Tuple RightFront $ positionSpriteNEW (unsafeLookup RightFront sprites) layout (30.0),
-    Tuple RightRear $ positionSpriteNEW (unsafeLookup RightRear sprites) layout (110.0),
-    Tuple LeftRear $ positionSpriteNEW (unsafeLookup LeftRear sprites) layout (-110.0)
-  ]
 
 
 positionSpriteNEW :: Sprite -> LayoutDescriptor -> Degree -> Sprite 
@@ -291,7 +291,7 @@ positionSpriteNEW sprite {center, radius} degrees = sprite{pos=targetPos}
   targetPos = rotatedVector :+: center
 
 
-translateSprites :: SpriteMap -> Vector -> SpriteMap 
+translateSprites :: SpriteMap Sprite -> Vector -> SpriteMap Sprite 
 translateSprites sprites v = map (\s -> s{pos=s.pos :+: v}) sprites
 
 
@@ -390,17 +390,19 @@ parseRoomDimension = parseBase10 .<<. betweenZeroAndTwoHundred
 updateSprites :: (Sprite -> Sprite) -> ApplicationState -> ApplicationState
 updateSprites f state = state{sprites=map f state.sprites}
 
-updateWhen :: (Sprite -> Boolean) -> (Sprite -> Sprite) -> SpriteMap -> SpriteMap 
+updateWhen :: (Sprite -> Boolean) -> (Sprite -> Sprite) -> SpriteMap Sprite -> SpriteMap Sprite 
 updateWhen predicate f = map (\s -> if (predicate s) then (f s) else s)
 
-enable :: Array SpriteID -> SpriteMap -> SpriteMap 
+enable :: Array SpriteID -> SpriteMap Sprite -> SpriteMap Sprite 
 enable = setEnabled true 
 
-disable :: Array SpriteID -> SpriteMap -> SpriteMap 
+disable :: Array SpriteID -> SpriteMap Sprite -> SpriteMap Sprite 
 disable = setEnabled false
 
-setEnabled :: Boolean -> Array SpriteID -> SpriteMap -> SpriteMap 
-setEnabled isEnabled ids sprites = foldl (\acc sId -> Map.insert sId (unsafeLookup sId acc){enabled=isEnabled} acc) sprites ids
+setEnabled :: Boolean -> Array SpriteID -> SpriteMap Sprite -> SpriteMap Sprite 
+setEnabled isEnabled ids sm = map (\s -> if elem s.id ids then s{enabled=isEnabled} else s) sm
+-- setEnabled isEnabled ids sprites = foldl (\acc sId -> Map.insert sId (unsafeLookup sId acc){enabled=isEnabled} acc) sprites ids
 
 setDragging :: LocalPosition -> Sprite -> Sprite  
 setDragging pos s = s{isBeingDragged=true, clickOffset=(localToIso pos) :-: s.pos}   
+

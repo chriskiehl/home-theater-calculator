@@ -16,7 +16,7 @@ import Effect (Effect)
 import Graphics.Canvas (Context2D)
 import Graphics.Canvas as Canvas
 import Reflections (collectInteractionPoints, leftReflections, rightReflections)
-import Types (ApplicationState, Sprite, SpriteID(..), WallInteractionPoints, PrimaryReflections)
+import Types (ApplicationState, PrimaryReflections, Sprite, SpriteID(..), SpriteMap(..), WallInteractionPoints, values, valuesL)
 import Utils (unsafeLookup)
 import Vector ((:**:), (:*:), (:+:), (:-:))
 
@@ -45,7 +45,7 @@ highlightHitboxes ctx state = do
   let ys = stepRange (-4.0) 4.0 0.1 
   for_ xs \x -> 
     for_ ys \y -> 
-      if anyOfEm x y (Map.values state.sprites) 
+      if anyOfEm x y (valuesL state.sprites) 
         then paintRed ctx x y    
         else paintBlue ctx x y    
 
@@ -69,9 +69,10 @@ anyOfEm x y sprites = foldl (\acc val -> if val then val else acc) false aany
 
 traceActualTvSize :: Context2D -> ApplicationState -> Effect Unit 
 traceActualTvSize ctx state = do 
+  let (SpriteMap sprites) = state.sprites
   let {screenSize, aspectRatio} = state.tvSpecs 
-  let leftFront = Core.footprint (unsafeLookup LeftFront state.sprites)
-  let tv = (unsafeLookup TV state.sprites)
+  let leftFront = Core.footprint sprites.leftFront
+  let tv = sprites.tv
   let diagonalDegrees = atan (aspectRatio.height / aspectRatio.width )
   let screenWidth = (cos diagonalDegrees) * screenSize 
   let isoWidth = ((cos 30.0) * screenWidth )
@@ -92,6 +93,7 @@ traceActualTvSize ctx state = do
 
 drawAllReflectionsBy :: (WallInteractionPoints -> PrimaryReflections) -> Context2D -> ApplicationState -> Effect Unit 
 drawAllReflectionsBy f ctx state = do 
+  let (SpriteMap sprites) = state.sprites 
   let {firstReflection, secondReflection, thirdReflection} = f $ collectInteractionPoints state.sprites state.geometry
   let frs = toIso firstReflection.source
   let frd = toIso firstReflection.dest
