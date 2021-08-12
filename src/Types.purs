@@ -65,6 +65,9 @@ data SpriteID
 -- | collision detection or rendering that we adjust their position based on 
 -- | where we want their sprite to be achored. 
 -- | This makes doing math between the sprites much, much easier. 
+-- | 
+-- | All of these anchor positions should be visualized against the standard 
+-- | Isometric cube. 
 data AnchorPosition 
   = CenterNorth
   | CenterSouth 
@@ -73,7 +76,16 @@ data AnchorPosition
   | Bottom 
   | Top 
   | TopLeft 
+  -- the actual top-left origin of the Cartesian rectangle containing the sprite 
+  -- generally not used for anything other than testing, as it's completely 
+  -- disconnected from the visuals contained within the sprite. 
   | TrueOrigin
+  -- In (x,y,z) logical origin would be the location on the sprite which 'logically' 
+  -- sits at the Sprite's "visual" Isometric coordinate (0,0,1). Meaning the top-left of 
+  -- the bottom, back-most cube. This is used to sit large, irregular non-32x32 sprites 
+  -- such that rendering them at (0,0) makes sense. And for *that* description to make 
+  -- sense, load one of the large sprites and render it at TrueOrigin (0,0). The need for
+  -- establishing a logical origin will become clear. 
   | LogicalOrigin 
 
 
@@ -174,7 +186,7 @@ type Sprite = {
   pos :: Vector, 
   originOffset :: Vector, 
   clickOffset :: Vector,
-  image :: String, 
+  image :: DataUrl, 
   images :: Images, 
   isBeingDragged :: Boolean,
   size :: Vector3,
@@ -188,8 +200,8 @@ type AspectRatio = {
 }
 
 type Images = {
-  normal :: String, 
-  hover :: String 
+  normal :: DataUrl, 
+  hover :: DataUrl 
 }
 
 type FormFields = {
@@ -288,4 +300,7 @@ data Mode = HomeTheater | Studio
 instance showMode :: Show Mode where 
   show HomeTheater = "Home Theater" 
   show Studio = "Studio"  
+
+-- | A DataURL containing a b64 encoded .png
+type DataUrl = String 
 
