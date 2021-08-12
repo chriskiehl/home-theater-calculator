@@ -4,7 +4,7 @@ import Coordinates
 import Prelude
 
 import Control.Apply (lift2)
-import Data.Array (elem)
+import Data.Array (all, elem)
 import Data.Int (toNumber)
 import Data.List (find, foldl)
 import Data.Map as Map
@@ -141,7 +141,7 @@ isCollidingWithBoundaries {depth} sprites = not (allInBounds)
     {bottomLeft, topLeft} = footprint s
     inBounds = bottomLeft.y <= depth && bottomLeft.x >= 0.0
       && topLeft.y >= 0.0 && topLeft.x >= 0.0
-  allInBounds = foldl (\acc s -> acc && (isInBounds s)) true (values sprites)
+  allInBounds = all isInBounds (values sprites)
 
 
 areSpeakersColliding :: SpriteMap Sprite -> Boolean 

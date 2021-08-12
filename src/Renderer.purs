@@ -13,7 +13,7 @@ import Data.Map as M
 import Data.Maybe (fromMaybe)
 import Data.Number.Format (fixed, toStringWith)
 import Debug (spy)
-import Debugging (drawAllReflections, outlineFootprint, traceActualTvSize)
+import Debugging (drawAllReflections, highlightHitboxes, outlineFootprint, traceActualTvSize)
 import DegreeMath (cos)
 import Effect (Effect)
 import Graphics.Canvas (Context2D)

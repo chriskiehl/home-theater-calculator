@@ -7,6 +7,7 @@ import Prelude
 
 import Coordinates (isoTransform, toIso)
 import Core as Core
+import Data.Array (any, fromFoldable)
 import Data.Foldable (foldl, for_)
 import Data.List (List)
 import Data.Map as Map
@@ -58,11 +59,9 @@ outlineFootprint ctx s = do
   Canvas.fillRect ctx {x: (toIso topLeft).x, y: (toIso topLeft).y, width: 2.0, height: 2.0}
   Canvas.fillRect ctx {x: (toIso topRight).x, y: (toIso topRight).y, width: 2.0, height: 2.0}
 
+
 anyOfEm :: Number -> Number -> List Sprite -> Boolean 
-anyOfEm x y sprites = foldl (\acc val -> if val then val else acc) false aany
-  where 
-  sprites_' = map (\x -> x{pos=x.pos }) sprites 
-  aany = map (Core.inBounds {x, y}) sprites
+anyOfEm x y sprites = any (Core.inBounds {x, y}) (fromFoldable sprites) 
 
 
 
