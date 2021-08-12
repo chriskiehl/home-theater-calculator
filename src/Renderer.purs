@@ -21,7 +21,6 @@ import Graphics.Canvas as Canvas
 import Math ((%))
 import Sprites as Sprites
 import Types (AnchorPosition(..), ApplicationState, Degree, Sprite, SpriteID(..), SpriteMap(..), values, valuesL)
-import Utils (unsafeLookup)
 import Vector (Matrix2D, Vector, dist, rotate, (:**:), (:*:), (:+:), (:-:))
 
 render :: Context2D -> ApplicationState -> Effect Unit

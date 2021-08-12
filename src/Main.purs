@@ -18,17 +18,12 @@ import Web.HTML.Window (document)
 
 
 main :: Effect Unit
-main = unsafePartial do
-  -- Just env <- CanvasSupport.getCanvasEnvironment "canvas"
-  -- stateRef <- (Refs.new initialState)  
+main = do
   log "🍝"
-  -- render env.ctx stateRef 
   let _ = (map toNonElementParentNode $ document =<< window)
   container <- getElementById "app" =<< (map toNonElementParentNode $ document =<< window)
-  pure unit 
   case container of
     Nothing -> throw "Container element not found."
     Just element  -> do 
-      pure unit 
       app <- application
       render (app unit) element

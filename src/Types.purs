@@ -202,7 +202,7 @@ type FormFields = {
 }
 
 type TvSpecs = {
-  screenSize :: DiagonalLength, 
+  diagonalLength :: DiagonalLength, 
   aspectRatio :: AspectRatio 
 }
 
@@ -248,7 +248,6 @@ type PrimaryReflections = {
  secondReflection :: {source :: Position, reflection :: Position, dest :: Position},
  thirdReflection :: {source :: Position, reflection :: Position, dest :: Position}
 }
-
 
 
 data FormID = Channels | Width | Depth | ScreenSize | AspectRatio | SimulationMode

@@ -35,7 +35,6 @@ module Reflections where
 import Prelude
 
 import Types (Geometry, Position, PrimaryReflections, SpriteID(..), SpriteMap(..), WallInteractionPoints, Sprite)
-import Utils (unsafeLookup)
 
 
 -- | Finds the x,y cooridinates where two lines (as formed by the pairs of inputs) intersect. 

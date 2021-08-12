@@ -12,10 +12,6 @@ import Types (LocalPosition)
 import Unsafe.Coerce (unsafeCoerce)
 
 
-unsafeLookup :: forall k v. Ord k => k -> Map.Map k v -> v 
-unsafeLookup k m = unsafePartial $ fromJust $ Map.lookup k m 
-
-
 getValue :: EventFn SyntheticEvent String 
 getValue = unsafeEventFn \e -> (unsafeCoerce e).target.value
 
@@ -33,14 +29,6 @@ canvasPosition = unsafeEventFn \e ->
       client = {x: toNumber (unsafeCoerce e).clientX, y: toNumber (unsafeCoerce e).clientY}
   in {x: client.x - rect.left, y: client.y - rect.top} 
   
-
--- | Compose two monadic functions together. 
--- | this surely exists, but I cannot find it :| 
-compMonad :: forall a b c m. Monad m => (a -> m b) -> (b -> m c) -> (a -> m c)
-compMonad f g = (\x -> (f x) >>= g)
-
-infix 5 compMonad as .<<.  
-
 
 -- | combines two boolean functions into a new function testing both cases
 --   Another thing which surely already exists, but I can't find :|  

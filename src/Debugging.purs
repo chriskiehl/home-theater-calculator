@@ -17,7 +17,6 @@ import Graphics.Canvas (Context2D)
 import Graphics.Canvas as Canvas
 import Reflections (collectInteractionPoints, leftReflections, rightReflections)
 import Types (ApplicationState, PrimaryReflections, Sprite, SpriteID(..), SpriteMap(..), WallInteractionPoints, values, valuesL)
-import Utils (unsafeLookup)
 import Vector ((:**:), (:*:), (:+:), (:-:))
 
 spriteSize = 16.0 
@@ -70,11 +69,11 @@ anyOfEm x y sprites = foldl (\acc val -> if val then val else acc) false aany
 traceActualTvSize :: Context2D -> ApplicationState -> Effect Unit 
 traceActualTvSize ctx state = do 
   let (SpriteMap sprites) = state.sprites
-  let {screenSize, aspectRatio} = state.tvSpecs 
+  let {diagonalLength, aspectRatio} = state.tvSpecs 
   let leftFront = Core.footprint sprites.leftFront
   let tv = sprites.tv
   let diagonalDegrees = atan (aspectRatio.height / aspectRatio.width )
-  let screenWidth = (cos diagonalDegrees) * screenSize 
+  let screenWidth = (cos diagonalDegrees) * diagonalLength
   let isoWidth = ((cos 30.0) * screenWidth )
   let halfIsoWidth = (isoWidth / 2.0) / 16.0
   let pos = toIso (tv.pos)

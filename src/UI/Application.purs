@@ -34,7 +34,6 @@ import Sprites as Sprites
 import Type.Proxy (Proxy(..))
 import Types (Action(..), AnchorPosition(..), ApplicationState, AudioChannels(..), FormField, FormID(..), Geometry, NumericField, SelectField, SpriteID(..), TextField, TvSpecs, AspectRatio)
 import Unsafe.Coerce (unsafeCoerce)
-import Utils (unsafeLookup)
 
 
 reducer :: ApplicationState -> Action -> ApplicationState 

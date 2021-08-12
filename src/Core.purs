@@ -3,6 +3,7 @@ module Core where
 import Coordinates
 import Prelude
 
+import Control.Apply (lift2)
 import Data.Array (elem)
 import Data.Int (toNumber)
 import Data.List (find, foldl)
@@ -14,7 +15,6 @@ import DegreeMath (atan, cos, sin, tan)
 import Math as Math
 import ParseInt (parseBase10)
 import Types (AnchorPosition(..), ApplicationState, AspectRatio, AudioChannels(..), Degree, FOV, FormID(..), Geometry, LayoutDescriptor, LocalPosition, Mode(..), Position, Sprite, SpriteID(..), SpriteMap(..), TvSpecs, values)
-import Utils (unsafeLookup, (&&&&), (.<<.), (||||))
 import Vector (Matrix2D, Vector, dist, (:**:), (:*:), (:+:), (:-:), rotate)
 
 
@@ -22,7 +22,7 @@ handleMouseDown :: ApplicationState -> LocalPosition -> ApplicationState
 handleMouseDown state cursorPos = state{sprites=updateWhen inBoundsAndEnabled (setDragging cursorPos) state.sprites}
   where 
   inBoundsAndEnabled :: Sprite -> Boolean
-  inBoundsAndEnabled = (spriteInBounds cursorPos) &&&& _.enabled
+  inBoundsAndEnabled = (spriteInBounds cursorPos) && _.enabled
 
 
 handleMouseUp :: ApplicationState -> ApplicationState 
@@ -43,8 +43,8 @@ dispatchDrag state v s = case s.id of
   _ -> onMove translateSprites isColliding s v state
   where 
   isColliding = (isCollidingWithBoundaries state.geometry) 
-                |||| (isCollidingWithTv state.tvSpecs) 
-                |||| areSpeakersColliding
+                || (isCollidingWithTv state.tvSpecs) 
+                || areSpeakersColliding
 
 
 onMove 
@@ -90,7 +90,7 @@ updateField state id value = case id of
     Just depth -> state{form{roomDepth{value=depth}}, geometry{depth=(toNumber depth)}}
     Nothing -> state{form{roomDepth{error=Just "Must be a valid number!"}}}
   ScreenSize -> case (parseBase10 value) of 
-    Just newSize -> state{form{screenSize{value=newSize}}, tvSpecs{screenSize=toNumber newSize}}
+    Just newSize -> state{form{screenSize{value=newSize}}, tvSpecs{diagonalLength=toNumber newSize}}
     Nothing -> state{form{screenSize{error=Just "Must be a valid number"}}}
   AspectRatio -> case (parseAspectRatio value) of 
     Just newRatio -> state{form{aspectRatio{value=value}}, tvSpecs{aspectRatio=newRatio}}
@@ -156,11 +156,11 @@ areSpeakersColliding (SpriteMap sprites) = colliding
 isCollidingWithTv :: TvSpecs -> SpriteMap Sprite -> Boolean 
 isCollidingWithTv tv (SpriteMap sprites) = if sprites.tv.enabled then leftFront.bottomRight.x >= tvSprite.bottomLeft.x else false 
   where 
-  {screenSize, aspectRatio} = tv
+  {diagonalLength, aspectRatio} = tv
   leftFront = footprint sprites.leftFront 
   tvSprite = footprint sprites.tv
   diagonalDegrees = atan (aspectRatio.height / aspectRatio.width )
-  screenWidth = (cos diagonalDegrees) * screenSize 
+  screenWidth = (cos diagonalDegrees) * diagonalLength
   isoWidth = (cos 30.0) * screenWidth / 16.0
 
 
@@ -246,7 +246,7 @@ fieldOfView (SpriteMap sprites) specs = angle * 2.0
 -- | computes the horizontal width of the screen from 
 -- | the diagonal length and aspect ratio. 
 screenWidth :: TvSpecs -> Number 
-screenWidth {screenSize, aspectRatio} = (cos diagonalDegrees) * screenSize 
+screenWidth {diagonalLength, aspectRatio} = (cos diagonalDegrees) * diagonalLength 
   where 
   diagonalDegrees = atan (aspectRatio.height / aspectRatio.width) 
 
@@ -281,17 +281,17 @@ recenterSprites :: SpriteMap Sprite -> LayoutDescriptor -> SpriteMap Sprite
 recenterSprites (SpriteMap sprites) layout = SpriteMap {
     chair: sprites.chair{pos=layout.center},
     tv: sprites.tv{pos={x: layout.center.x, y: layout.center.y - tvDistance}},
-    leftFront: positionSpriteNEW sprites.leftFront layout (-30.0),
-    rightFront: positionSpriteNEW sprites.rightFront layout (30.0),
-    rightRear: positionSpriteNEW sprites.rightRear layout (110.0),
-    leftRear: positionSpriteNEW sprites.leftRear layout (-110.0)
+    leftFront: positionSprite sprites.leftFront layout (-30.0),
+    rightFront: positionSprite sprites.rightFront layout (30.0),
+    rightRear: positionSprite sprites.rightRear layout (110.0),
+    leftRear: positionSprite sprites.leftRear layout (-110.0)
   }
   where 
   tvDistance = (cos 30.0) * layout.radius
 
 
-positionSpriteNEW :: Sprite -> LayoutDescriptor -> Degree -> Sprite 
-positionSpriteNEW sprite {center, radius} degrees = sprite{pos=targetPos}
+positionSprite :: Sprite -> LayoutDescriptor -> Degree -> Sprite 
+positionSprite sprite {center, radius} degrees = sprite{pos=targetPos}
   where 
   forwardVector = {x: 0.0, y: -radius} 
   rotatedVector = rotate forwardVector degrees 
@@ -391,7 +391,7 @@ betweenZeroAndTwoHundred x = if x > 0 && x < 200 then Just x else Nothing
 
 
 parseRoomDimension :: String -> Maybe Int 
-parseRoomDimension = parseBase10 .<<. betweenZeroAndTwoHundred
+parseRoomDimension = parseBase10 >=> betweenZeroAndTwoHundred
 
 
 updateSprites :: (Sprite -> Sprite) -> ApplicationState -> ApplicationState

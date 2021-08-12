@@ -20,7 +20,7 @@ initialGeometry = {
 
 defaultSpecs :: TvSpecs
 defaultSpecs = {
-  screenSize: toNumber initialScreenSize,
+  diagonalLength: toNumber initialScreenSize,
   aspectRatio: {width: 16.0, height: 9.0}
 }
 
