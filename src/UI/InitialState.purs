@@ -28,12 +28,12 @@ defaultSpecs = {
 initialState :: ApplicationState
 initialState = {
   sprites: SpriteMap {
-    chair: Sprites.blockSprite{id=Chair, pos={x: 0.0, y: 0.0}},
-    leftFront: Sprites.twoStackSprite{id=LeftFront},
-    rightFront: Sprites.twoStackSprite{id=RightFront},
-    tv: Sprites.threeBlockTwoZSprite{id=TV, pos={x: 3.0/2.0, y: 0.0}},
-    leftRear: Sprites.twoStackSprite{id=LeftRear, anchor=CenterEast},
-    rightRear: Sprites.twoStackSprite{id=RightRear, anchor=CenterWest}
+    chair: (Sprites.blockSprite Chair){pos={x: 0.0, y: 0.0}},
+    leftFront: Sprites.twoStackSprite LeftFront,
+    rightFront: Sprites.twoStackSprite RightFront,
+    tv: (Sprites.threeBlockTwoZSprite TV){pos={x: 3.0/2.0, y: 0.0}},
+    leftRear: (Sprites.twoStackSprite LeftRear){anchor=CenterEast},
+    rightRear: (Sprites.twoStackSprite RightRear){anchor=CenterWest}
   },
   geometry: initialGeometry,
   tvSpecs: defaultSpecs,
@@ -41,7 +41,7 @@ initialState = {
     mode: {id: SimulationMode, value: "Home Theater", error: Nothing, options: ["Home Theater", "Studio"]},
     roomWidth: {id: Width, value: initialWidth, error: Nothing},
     roomDepth: {id: Depth, value: initialDepth, error: Nothing},
-    channels: {id: Channels, value: "2.0", error: Nothing, options: ["2.0", "5.0"]},
+    channels: {id: Channels, value: "5.0", error: Nothing, options: ["2.0", "5.0"]},
     screenSize: {id: ScreenSize, value: initialScreenSize, error: Nothing},
     aspectRatio: {id: AspectRatio, value: "16:9", error: Nothing, options: ["16:9", "2.4:1"]}
   }

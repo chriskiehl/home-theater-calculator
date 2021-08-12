@@ -5,9 +5,9 @@ import Prelude ((-), negate)
 import Types (AnchorPosition(..), Sprite, SpriteID(..))
 
 
-thiccWallSprite :: Sprite
-thiccWallSprite = {
-  id: Placeholder,
+thiccWallSprite :: SpriteID -> Sprite
+thiccWallSprite spriteId = {
+  id: spriteId,
   pos: {x: 0.0, y: 0.0},
   originOffset: {x: 3.0, y: 1.0},
   clickOffset: {x: 0.0, y: 0.0},
@@ -20,9 +20,9 @@ thiccWallSprite = {
 }
 
 
-blockSprite :: Sprite
-blockSprite = {
-  id: Placeholder,
+blockSprite :: SpriteID -> Sprite
+blockSprite spriteId = {
+  id: spriteId,
   pos: {x: 3.5, y: 6.0},
   originOffset: {x: 1.5, y: 0.5},
   clickOffset: {x: 0.0, y: 0.0},
@@ -34,9 +34,9 @@ blockSprite = {
   enabled: true
 }
 
-twoBlockSprite :: Sprite
-twoBlockSprite = {
-  id: Placeholder,
+twoBlockSprite :: SpriteID -> Sprite
+twoBlockSprite spriteId = {
+  id: spriteId,
   pos: {x: 0.0, y: 0.0},
   originOffset: {x: 1.5, y: 0.5},
   clickOffset: {x: 0.0, y: 0.0},
@@ -48,9 +48,9 @@ twoBlockSprite = {
   enabled: true
 }
 
-threeBlockTwoZSprite :: Sprite
-threeBlockTwoZSprite = {
-  id: Placeholder,
+threeBlockTwoZSprite :: SpriteID -> Sprite
+threeBlockTwoZSprite spriteId = {
+  id: spriteId,
   pos: {x: 0.0, y: 0.0},
   originOffset: {x: 1.5, y: 0.5},
   clickOffset: {x: 0.0, y: 0.0},
@@ -62,9 +62,9 @@ threeBlockTwoZSprite = {
   enabled: true
 }
 
-twoStackSprite :: Sprite
-twoStackSprite = {
-  id: Placeholder,
+twoStackSprite :: SpriteID -> Sprite
+twoStackSprite spriteId= {
+  id: spriteId,
   pos: {x: 0.0, y: 0.0},
   originOffset: {x: 2.5, y: 1.5},
   clickOffset: {x: 0.0, y: 0.0},

@@ -83,7 +83,7 @@ renderWalls :: Context2D -> ApplicationState -> Effect Unit
 renderWalls ctx {geometry} = do 
   let width = fromMaybe 0 (fromNumber geometry.width)
   let depth = fromMaybe 0 (fromNumber geometry.depth)
-  let s = Core.anchorOrigin Sprites.blockSprite{anchor=LogicalOrigin, pos={x: 0.0, y: 0.0}}
+  let s = Core.anchorOrigin (Sprites.blockSprite Placeholder){anchor=LogicalOrigin, pos={x: 0.0, y: 0.0}}
   for_ [0, -1, -2, -3] \yOffset ->
     for_ (Array.range (-1) (depth - 1)) \y -> do 
       drawSprite ctx (Core.anchorOrigin s{pos={x: toNumber ((-1) + yOffset), y: (toNumber (y + yOffset))}})

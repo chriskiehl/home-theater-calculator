@@ -255,10 +255,13 @@ type WallInteractionPoints = {
   j :: Position
 }
 
+type Reflection = {source :: Position, reflection :: Position, dest :: Position}
+
+
 type PrimaryReflections = {
- firstReflection :: {source :: Position, reflection :: Position, dest :: Position},
- secondReflection :: {source :: Position, reflection :: Position, dest :: Position},
- thirdReflection :: {source :: Position, reflection :: Position, dest :: Position}
+ firstReflection :: Reflection,
+ secondReflection :: Reflection,
+ thirdReflection :: Reflection
 }
 
 

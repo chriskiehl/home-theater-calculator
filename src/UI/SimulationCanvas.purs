@@ -24,11 +24,13 @@ mainCanvas {dispatch} =
       id: "canvas", 
       width: "896", 
       height: "608",
-      onMouseDown: handler canvasPosition \event -> dispatch $ asType MouseDown event,
-      onMouseUp: handler canvasPosition \event -> dispatch $ asType MouseUp event,
-      onMouseMove: handler canvasPosition \event -> dispatch $ asType MouseMove event 
+      onMouseDown: onMouseDown MouseDown,
+      onMouseUp: onMouseDown MouseUp,
+      onMouseMove: onMouseDown MouseMove 
     } 
   ]}
+  where 
+  onMouseDown eventType = handler canvasPosition \event -> dispatch $ asType eventType event
 
 asType :: (Vector -> Action) -> Position -> Action 
 asType t pos = t pos
