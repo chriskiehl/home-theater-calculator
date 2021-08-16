@@ -14,7 +14,7 @@ import Debug (spy)
 import DegreeMath (atan, cos, sin, tan)
 import Math as Math
 import ParseInt (parseBase10)
-import Types (AnchorPosition(..), ApplicationState, AspectRatio, AudioChannels(..), Degree, FOV, FormID(..), Geometry, LayoutDescriptor, LocalPosition, Mode(..), Position, Sprite, SpriteID(..), SpriteMap(..), TvSpecs, values)
+import Types (AnchorPosition(..), ApplicationState, AspectRatio, AudioChannels(..), Degree, FOV, FormID(..), Geometry, LayoutDescriptor, LocalPosition, Mode(..), Position, Sprite, SpriteID(..), SpriteMap(..), TvSpecs, Footprint, values)
 import Vector (Matrix2D, Vector, dist, (:**:), (:*:), (:+:), (:-:), rotate)
 
 
@@ -22,7 +22,7 @@ handleMouseDown :: ApplicationState -> LocalPosition -> ApplicationState
 handleMouseDown state cursorPos = state{sprites=updateWhen inBoundsAndEnabled (setDragging cursorPos) state.sprites}
   where 
   inBoundsAndEnabled :: Sprite -> Boolean
-  inBoundsAndEnabled = (spriteInBounds cursorPos) && _.enabled
+  inBoundsAndEnabled = spriteInBounds cursorPos && _.enabled
 
 
 handleMouseUp :: ApplicationState -> ApplicationState 
@@ -79,20 +79,20 @@ handleHover cursorPos state = state{sprites=map (setHovering cursorPos) state.sp
 -- Thus: the repeated boilerplate below. 
 updateField :: ApplicationState -> FormID -> String -> ApplicationState
 updateField state id value = case id of 
-  SimulationMode -> fromMaybe state $ (updateMode state) <$> (parseMode value)
-  Channels -> case (parseChannel value) of 
+  SimulationMode -> fromMaybe state $ updateMode state <$> (parseMode value)
+  Channels -> case parseChannel value of 
     Just channel -> updateChannels (state{form{channels{value=value}}}) channel
     Nothing -> state{form{channels{error=Just "Invalid input"}}}
-  Width -> case (parseRoomDimension value) of 
+  Width -> case parseRoomDimension value of 
     Just width -> baselineXPosition $ state{form{roomWidth{value=width}}, geometry{width=(toNumber width)}}
     Nothing -> state{form{roomWidth{error=Just "Must be a valid number!"}}}
-  Depth -> case (parseRoomDimension value) of 
+  Depth -> case parseRoomDimension value of 
     Just depth -> state{form{roomDepth{value=depth}}, geometry{depth=(toNumber depth)}}
     Nothing -> state{form{roomDepth{error=Just "Must be a valid number!"}}}
-  ScreenSize -> case (parseBase10 value) of 
+  ScreenSize -> case parseBase10 value of 
     Just newSize -> state{form{screenSize{value=newSize}}, tvSpecs{diagonalLength=toNumber newSize}}
     Nothing -> state{form{screenSize{error=Just "Must be a valid number"}}}
-  AspectRatio -> case (parseAspectRatio value) of 
+  AspectRatio -> case parseAspectRatio value of 
     Just newRatio -> state{form{aspectRatio{value=value}}, tvSpecs{aspectRatio=newRatio}}
     Nothing -> state{form{aspectRatio{error=Just "Unknown aspect ratio"}}}
 
@@ -154,7 +154,7 @@ areSpeakersColliding (SpriteMap sprites) = colliding
 -- | TODO: needs to take the actual ISO size of the TV into consideration for 
 -- | actual collision math. Currently just uses the size of the placeholder sprite
 isCollidingWithTv :: TvSpecs -> SpriteMap Sprite -> Boolean 
-isCollidingWithTv tv (SpriteMap sprites) = if sprites.tv.enabled then leftFront.bottomRight.x >= tvSprite.bottomLeft.x else false 
+isCollidingWithTv tv (SpriteMap sprites) = sprites.tv.enabled && leftFront.bottomRight.x >= tvSprite.bottomLeft.x
   where 
   {diagonalLength, aspectRatio} = tv
   leftFront = footprint sprites.leftFront 
@@ -219,7 +219,7 @@ isWithinSprite pos fullSprite = (pos.x > sprite.x
 
 
 
-footprint :: Sprite -> {topLeft :: Position, topRight :: Position, bottomLeft :: Position, bottomRight :: Position}
+footprint :: Sprite -> Footprint
 footprint s = {topLeft, topRight, bottomLeft, bottomRight}   
   where 
   bottomLeft = case s.anchor of 
@@ -310,10 +310,6 @@ positionDelta s cursorPos = {x: 0.0, y: nextPos.y} :-: {x: 0.0, y: s.pos.y}
   nextPos = (localToIso cursorPos) :-: s.clickOffset 
 
 
-
-
-
-
 -- | returns a version of the sprite with its origin 
 -- | positioned at the sprite's anchor
 anchorAdjusted :: Sprite -> Sprite
@@ -325,7 +321,6 @@ anchorAdjusted s = case s.anchor of
   Bottom -> anchorBottom s 
   LogicalOrigin -> s{pos=s.pos :-: s.originOffset}
   _ -> s 
-
 
 
 anchorOrigin :: Sprite -> Sprite  
@@ -367,9 +362,6 @@ anchorCenterWest s = s{pos=northCenter}
   where 
   southCenter = (anchorBottom s).pos 
   northCenter = southCenter :+: {x: 0.0, y: s.size.y / 2.0}  
-
-
-
 
 
 parseChannel :: String -> Maybe AudioChannels

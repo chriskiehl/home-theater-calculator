@@ -58,7 +58,7 @@ data SpriteID
   | RightRear 
   | Center 
   | Chair  
-  | Placeholder 
+  | AdHoc 
 
 -- | Sprites maintain a 'pure' position in space sans any offsets
 -- | or shifting to account for their actual size or shape. it's only during 
@@ -262,6 +262,14 @@ type PrimaryReflections = {
  firstReflection :: Reflection,
  secondReflection :: Reflection,
  thirdReflection :: Reflection
+}
+
+
+type Footprint = {
+  topLeft :: Position, 
+  topRight :: Position, 
+  bottomLeft :: Position, 
+  bottomRight :: Position
 }
 
 
