@@ -4,7 +4,7 @@ import Prelude
 
 import CanvasSupport (Environment)
 import CanvasSupport as CanvasSupport
-import Components (controls, homeTheaterForm, report)
+import Components (controls, homeTheaterForm, report, hud)
 import Control.Monad.Trans.Class (lift)
 import Core as Core
 import Data.Int (toNumber)
@@ -90,6 +90,7 @@ application = do
     pure $ fragment [
       R.div {children: [
         R.div_ [
+          hud {dispatch, state},
           mainCanvas {dispatch},
           controls {dispatch, fields: state.form}
         ],

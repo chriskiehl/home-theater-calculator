@@ -4,6 +4,7 @@ import Coordinates
 import Prelude
 
 import CanvasSupport (fromDataSource)
+import Constants (tileWidth)
 import Core as Core
 import Data.Array as Array
 import Data.Foldable (for_)
@@ -19,28 +20,52 @@ import Effect (Effect)
 import Graphics.Canvas (Context2D)
 import Graphics.Canvas as Canvas
 import Math ((%))
+import Reflections (collectInteractionPoints, leftReflections)
 import Sprites as Sprites
-import Types (AnchorPosition(..), ApplicationState, Degree, Sprite, SpriteID(..), SpriteMap(..), values, valuesL)
+import Types (AnchorPosition(..), Degree, Sprite, SpriteID(..), SpriteMap(..), ApplicationState, values, valuesL)
 import Vector (Matrix2D, Vector, dist, rotate, (:**:), (:*:), (:+:), (:-:))
 
 render :: Context2D -> ApplicationState -> Effect Unit
 render ctx state = do 
   -- let r = spy "render: " (unsafeLookup Chair state.sprites).pos.x 
   Canvas.clearRect ctx {x: 0.0, y: 0.0, width: 900.0, height: 900.0}
+  
   tilebackground ctx 
   renderFloor ctx state 
   renderWalls ctx state 
+  drawCenterLine ctx state 
   -- drawLines ctx state 
+  -- drawStudioLines ctx state 
   renderSprites ctx state
   -- highlightHitboxes ctx state
   for_ (values state.sprites) (outlineFootprint ctx)
   traceActualTvSize ctx state 
+  
   -- drawFirstReflections ctx state 
   -- drawRearReflections ctx state 
   drawAllReflections ctx state
-  Canvas.setFont ctx "30px arial black"
-  Canvas.fillText ctx (toStringWith (fixed 2) (Core.fieldOfView state.sprites state.tvSpecs)) 100.0 100.0
-  
+
+  Canvas.setFont ctx "30px Arial"
+  Canvas.fillText ctx ("FOV: " <> (toStringWith (fixed 2) stats.fov) <> "°  " <> "[" <> show stats.presence <> "]") 20.0 80.0
+  Canvas.fillText ctx ("Distance: "<> (toStringWith (fixed 2) $ stats.distanceFromTv / 12.0) <> "\"") 20.0 110.0
+  Canvas.fillText ctx ("Speaker Distance: " <> show (stats.speakerDistance / 12.0)) 20.0 170.0
+  Canvas.fillText ctx ("Main's distance from wall: " <> toStringWith (fixed 2) ((stats.frontsDistanceFromWall * 16.0) / 12.0) <> "\"" )  20.0 200.0
+  Canvas.fillText ctx ("1st Reflection: " <> (toStringWith (fixed 2) ((firstReflection.reflection.y ))))  20.0 220.0
+  Canvas.fillText ctx ("2nd Reflection: " <> (toStringWith (fixed 2) ((secondReflection.reflection.y))))  20.0 245.0
+  Canvas.fillText ctx ("3rd Reflection: " <> (toStringWith (fixed 2) ((thirdReflection.reflection.x ))))  20.0 280.0
+  where 
+  stats = Core.homeTheaterStats state.sprites state.tvSpecs 
+  (SpriteMap sprites) = state.sprites 
+  {firstReflection, secondReflection, thirdReflection} = leftReflections $ collectInteractionPoints state.sprites state.geometry
+
+-- renderDistances :: Context2D -> ApplicationState -> Effect Unit 
+-- renderDistances ctx state = do 
+--   let (SpriteMap sm) = state.sprites 
+--   sm.rightFront
+--   pure unit 
+
+
+
 
 
 -- | Tiles the background with an alternating 32x32 checkerboard pattern
@@ -58,9 +83,21 @@ tilebackground ctx = do
 
 renderSprites :: Context2D -> ApplicationState -> Effect Unit 
 renderSprites ctx state = do 
-  for_ (reverse (sortBy (comparing (_.pos.x)) (valuesL state.sprites))) \s -> 
+  for_ (sortBy (comparing (_.pos.x)) (valuesL state.sprites)) \s -> do
     let sprt = Core.anchorAdjusted s
-    in if sprt.enabled then drawSprite ctx sprt else pure unit 
+    if sprt.enabled 
+      then drawSprite ctx sprt 
+      else pure unit 
+
+
+  for_ (sortBy (comparing (_.pos.x)) (valuesL state.sprites)) \s -> do
+    let sprt = Core.anchorAdjusted s    
+    if sprt.isBeingDragged
+      then do 
+        Canvas.setFont ctx "30px 'Boxy-Bold'"
+        Canvas.setFillStyle ctx "white"  
+        Canvas.fillText ctx (show sprt.id) (toIso sprt.pos).x (toIso sprt.pos).y
+      else pure unit 
 
   Canvas.setFillStyle ctx "red"
   for_ (values state.sprites) \s -> 
@@ -121,7 +158,42 @@ drawLines ctx state = do
     Canvas.closePath ctx 
     Canvas.stroke ctx 
 
+drawStudioLines :: Context2D -> ApplicationState -> Effect Unit 
+drawStudioLines ctx state = do 
+  let SpriteMap sprites = state.sprites
+      center = sprites.chair
+      tv = sprites.tv 
+      d = dist center.pos tv.pos 
+      r = d / cos 30.0 
+  for_ (Array.range 330 390) \degNum -> do  
+    let deg = toNumber degNum
+        qq = {x: 0.0, y: -r} 
+        qq' = rotate qq deg 
+        p = center.pos 
+        o = qq' :+: p 
+        pp = toIso p 
+        oo = toIso o
 
+    Canvas.fillRect ctx {x: (toIso p).x, y: (toIso p).y, width: 1.0, height: 1.0}
+    Canvas.setLineWidth ctx 3.0 
+    Canvas.beginPath ctx 
+    Canvas.moveTo ctx pp.x pp.y  
+    Canvas.lineTo ctx oo.x oo.y 
+    Canvas.closePath ctx 
+    Canvas.stroke ctx 
+
+
+
+drawCenterLine :: Context2D -> ApplicationState -> Effect Unit 
+drawCenterLine ctx state = do 
+  let center = toIso {x: 0.0, y: state.geometry.depth / 2.0}
+      end = toIso $ {x: 0.0, y: state.geometry.depth / 2.0} :+: {x: state.geometry.width, y:0.0}
+  Canvas.beginPath ctx 
+  Canvas.setStrokeStyle ctx "blue"
+  Canvas.setLineWidth ctx 3.0  
+  Canvas.moveTo ctx center.x center.y
+  Canvas.lineTo ctx end.x end.y
+  Canvas.stroke ctx 
 
 drawSprite :: Context2D -> Sprite -> Effect Unit 
 drawSprite ctx sprite = do 
@@ -147,7 +219,7 @@ strokeIso3 ctx x y = do
   pure unit
   where 
   pos = {x, y}
-  f = \xx -> ((16.0 :*: xx) :**: isoTransform) :+: {x: 448.0, y: 250.0}
+  f = \xx -> ((tileWidth :*: xx) :**: isoTransform) :+: {x: 448.0, y: 250.0}
   p1 = f pos 
   p2 = f {x: pos.x+1.0, y: pos.y}
   p3 = f {x:pos.x+1.0, y: pos.y + 1.0}

@@ -6,11 +6,11 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Prelude ((/))
 import Sprites as Sprites
-import Types (AnchorPosition(..), ApplicationState, FormID(..), Geometry, SpriteID(..), SpriteMap(..), TvSpecs)
+import Types (AnchorPosition(..), ApplicationState, FormID(..), Geometry, Mode(..), SpriteID(..), SpriteMap(..), TvSpecs)
 
-initialWidth = 13
-initialDepth = 15
-initialScreenSize = 50
+initialWidth = 15
+initialDepth = 18
+initialScreenSize = 60
 
 initialGeometry :: Geometry
 initialGeometry = {
@@ -38,7 +38,7 @@ initialState = {
   geometry: initialGeometry,
   tvSpecs: defaultSpecs,
   form: {
-    mode: {id: SimulationMode, value: "Home Theater", error: Nothing, options: ["Home Theater", "Studio"]},
+    mode: {id: SimulationMode, value: HomeTheater, error: Nothing, options: ["Home Theater", "Studio"]},
     roomWidth: {id: Width, value: initialWidth, error: Nothing},
     roomDepth: {id: Depth, value: initialDepth, error: Nothing},
     channels: {id: Channels, value: "5.0", error: Nothing, options: ["2.0", "5.0"]},

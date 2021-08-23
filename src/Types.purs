@@ -95,7 +95,15 @@ derive instance eqFormID :: Eq FormID
 derive instance ordFormID :: Ord FormID
 derive instance eqAnchorPos :: Eq AnchorPosition
 derive instance ordAnchorPos :: Ord AnchorPosition
-
+instance showSpriteId :: Show SpriteID where 
+  show TV = "TV"
+  show LeftFront = "Left Front"
+  show RightFront = "Right Front"
+  show LeftRear = "Left Rear"
+  show RightRear = "Right Rear"
+  show Center = "Center"
+  show Chair = "Listening Position" 
+  show AdHoc = "Ad Hoc"
 
 
 type FormField a r = (
@@ -108,6 +116,7 @@ type FormField a r = (
 type TextField = Record (FormField String ()) 
 type NumericField = Record (FormField Int ()) 
 type SelectField = Record (FormField String (options :: Array String))
+type TypedSelectField a = Record (FormField a (options :: Array String))
 
 type Geometry = {
   width :: Number,
@@ -205,7 +214,7 @@ type Images = {
 }
 
 type FormFields = {
-  mode :: SelectField,
+  mode :: TypedSelectField Mode,
   roomWidth :: NumericField, 
   roomDepth :: NumericField, 
   channels :: SelectField, 
@@ -308,6 +317,8 @@ data Action
 
 data Mode = HomeTheater | Studio
 
+derive instance eqMode :: Eq Mode 
+
 instance showMode :: Show Mode where 
   show HomeTheater = "Home Theater" 
   show Studio = "Studio"  
@@ -315,3 +326,38 @@ instance showMode :: Show Mode where
 -- | A DataURL containing a b64 encoded .png
 type DataUrl = String 
 
+-- | type for reflecting measurments in terms 
+-- | of feet and inches. e.g. 5"2' 
+type FeetInches = {
+  feet :: Int, 
+  inches :: Number 
+}
+
+
+data PresenceRating 
+  = ForAnts 
+  | Low 
+  | Medium 
+  | High 
+  | Ridiculous
+  | BleeingEyes
+
+
+instance showPresenceRating :: Show PresenceRating where 
+  show ForAnts = "For ants?!"
+  show Low = "Low" 
+  show Medium = "Medium" 
+  show High = "Recommended"
+  show Ridiculous = "Ridiculous"
+  show BleeingEyes = "Probably painful"  
+
+
+type LayoutStatistics = {
+  fov :: FOV, 
+  distanceFromTv :: Number, 
+  presence :: PresenceRating, 
+  speakerDistance :: Number,
+  -- distance from the front speakers to the 
+  -- forward wall. 
+  frontsDistanceFromWall :: Number 
+}    

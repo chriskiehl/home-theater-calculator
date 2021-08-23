@@ -5,16 +5,18 @@ import Prelude
 
 import Control.Apply (lift2)
 import Data.Array (all, elem)
-import Data.Int (toNumber)
+import Data.Int (floor, toNumber)
 import Data.List (find, foldl)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Number.Format (fixed, toStringWith)
 import Data.Tuple (Tuple(..))
 import Debug (spy)
 import DegreeMath (atan, cos, sin, tan)
+import Math (round)
 import Math as Math
 import ParseInt (parseBase10)
-import Types (AnchorPosition(..), ApplicationState, AspectRatio, AudioChannels(..), Degree, FOV, FormID(..), Geometry, LayoutDescriptor, LocalPosition, Mode(..), Position, Sprite, SpriteID(..), SpriteMap(..), TvSpecs, Footprint, values)
+import Types (AnchorPosition(..), ApplicationState, AspectRatio, AudioChannels(..), Degree, FOV, FeetInches, Footprint, FormID(..), Geometry, LayoutDescriptor, LocalPosition, Mode(..), Position, PresenceRating(..), Sprite, SpriteID(..), SpriteMap(..), TvSpecs, LayoutStatistics, values)
 import Vector (Matrix2D, Vector, dist, (:**:), (:*:), (:+:), (:-:), rotate)
 
 
@@ -67,7 +69,7 @@ handleHover :: LocalPosition -> ApplicationState -> ApplicationState
 handleHover cursorPos state = state{sprites=map (setHovering cursorPos) state.sprites}
   where 
   setHovering :: LocalPosition -> Sprite -> Sprite 
-  setHovering pos s = if (inBounds (localToIso pos) s) 
+  setHovering pos s = if (inBounds (localToIso pos) s) || s.isBeingDragged
                        then s{image=s.images.hover} 
                        else s{image=s.images.normal} 
 
@@ -106,8 +108,8 @@ parseMode raw = case raw of
 
 updateMode :: ApplicationState -> Mode -> ApplicationState 
 updateMode state mode = case mode of 
-  HomeTheater -> state{form{mode{value=(show mode)}, channels{value="5.0"}}, sprites=map _{enabled=true} state.sprites}
-  Studio -> state{form{mode{value=(show mode)}, channels{value="2.0"}}, sprites=disable [TV, LeftRear, RightRear] state.sprites}
+  HomeTheater -> state{form{mode{value=mode}, channels{value="5.0"}}, sprites=map _{enabled=true} state.sprites}
+  Studio -> state{form{mode{value=mode}, channels{value="2.0"}}, sprites=disable [TV, LeftRear, RightRear] state.sprites}
 
 
 updateChannels :: ApplicationState -> AudioChannels -> ApplicationState 
@@ -233,6 +235,13 @@ footprint s = {topLeft, topRight, bottomLeft, bottomRight}
   bottomRight = bottomLeft :+: {x: s.size.x, y: 0.0}
 
 
+chairTvDistance :: SpriteMap Sprite -> TvSpecs -> Number
+chairTvDistance (SpriteMap sprites) specs = (dist center.pos tv.pos) * 16.0
+  where 
+  center = sprites.chair
+  tv = sprites.tv
+
+
 fieldOfView :: SpriteMap Sprite -> TvSpecs -> FOV 
 fieldOfView (SpriteMap sprites) specs = angle * 2.0
   where 
@@ -241,7 +250,35 @@ fieldOfView (SpriteMap sprites) specs = angle * 2.0
   tv = sprites.tv
   distance = (dist center.pos tv.pos) * 16.0
   angle = atan (halfScreenWidth / distance)
-  
+
+
+presenceRating :: FOV -> PresenceRating
+presenceRating fov 
+  | fov < 25.0 = ForAnts
+  | fov < 30.0 = Low 
+  | fov < 40.0 = Medium 
+  | fov < 45.0 = High 
+  | fov < 50.0 = Ridiculous 
+  | otherwise  = BleeingEyes
+
+
+homeTheaterStats ::  SpriteMap Sprite -> TvSpecs -> LayoutStatistics
+homeTheaterStats sprites specs = {fov, distanceFromTv, presence, speakerDistance, frontsDistanceFromWall}
+  where
+  (SpriteMap sm) = sprites 
+  frontsDistanceFromWall = sm.rightFront.pos.y - 1.0
+  distanceFromTv = chairTvDistance sprites specs 
+  fov = fieldOfView sprites specs 
+  presence = presenceRating fov 
+  speakerDistance = distanceFromTv / (cos 30.0)
+
+
+
+segmentLines :: ApplicationState -> String 
+segmentLines state = "" 
+  where 
+  center = state.geometry.width / 2.0 
+  first3rd = state.geometry.depth / 3.0 
 
 -- | computes the horizontal width of the screen from 
 -- | the diagonal length and aspect ratio. 
@@ -403,5 +440,18 @@ setEnabled isEnabled ids sm = map (\s -> if elem s.id ids then s{enabled=isEnabl
 -- setEnabled isEnabled ids sprites = foldl (\acc sId -> Map.insert sId (unsafeLookup sId acc){enabled=isEnabled} acc) sprites ids
 
 setDragging :: LocalPosition -> Sprite -> Sprite  
-setDragging pos s = s{isBeingDragged=true, clickOffset=(localToIso pos) :-: s.pos}   
+setDragging pos s = s{isBeingDragged=true, clickOffset=(localToIso pos) :-: s.pos, image=s.images.hover}   
 
+tofeetInches :: Number -> FeetInches
+tofeetInches inches = if (Math.round remainingInches) == 12.0  -- nearest8th = 
+                      then {feet: feet + 1, inches: 0.0}
+                      else {feet: feet, inches: remainingInches}
+  where
+    feet = floor $ inches / 12.0 
+    remainingInches = inches - (toNumber feet) * 12.0
+    -- fraction = (toNumber (floor remainingInches)) - remainingInches
+
+
+showFeetInches :: FeetInches -> String 
+showFeetInches {feet, inches} = (show feet) <> "\"" <> (toStringWith (fixed 2) inches) <> "'"
+    

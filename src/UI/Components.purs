@@ -11,7 +11,7 @@ import React.Basic.DOM as R
 import React.Basic.DOM.Events (preventDefault)
 import React.Basic.Events (SyntheticEvent, handler, handler_)
 import React.Basic.Hooks (Component, JSX, component)
-import Types (Action(..), FormField, FormFields, FormID, NumericField, SelectField, TextField)
+import Types (Action(..), FormField, FormFields, FormID, Mode(..), NumericField, SelectField, TextField, ApplicationState)
 import Utils (getValue)
 import Web.Event.EventTarget (dispatchEvent)
 
@@ -28,6 +28,17 @@ errorClass :: Maybe String -> String
 errorClass (Just _) = "error"
 errorClass (_     ) = "" 
 
+
+hud :: {dispatch :: (Action -> Effect Unit), state :: ApplicationState} -> JSX 
+hud {dispatch, state} = R.div {
+  className: "",
+  style: css {position: "absolute", width: "100px", height: "100px", backgroundColor: "red"}
+}
+
+
+
+
+
 type FormProps = {
   dispatch :: (Action -> Effect Unit),
   fields :: FormFields
@@ -40,6 +51,8 @@ homeTheaterForm {dispatch, fields} = do
       onClickHandler field val = 
         handler getValue $ \e -> 
           dispatch $ UpdateField (field fields) $ val e 
+  let isTheaterMode = fields.mode.value == HomeTheater
+
   R.form_ [
     R.div_ [
       R.div_ (fields.mode.options # map \option -> 
@@ -48,21 +61,22 @@ homeTheaterForm {dispatch, fields} = do
             type: "radio", 
             name: "mode", 
             value: option, 
-            checked: option == fields.mode.value,
+            checked: option == (show fields.mode.value),
             onClick: onClickHandler (_.mode.id) (const option)
           },
           R.text option
         ]
       )
     ],
-    R.div_ [ 
-      R.label_ [ 
-        R.text "Channels",
-        R.select {
-          onChange: onClickHandler (_.channels.id) identity,
-          children: (makeOption fields.channels) <$> fields.channels.options
-        }
-    ],
+    onlyWhen isTheaterMode $
+      R.div_ [ 
+        R.label_ [ 
+          R.text "Channels",
+          R.select {
+            onChange: onClickHandler (_.channels.id) identity,
+            children: (makeOption fields.channels) <$> fields.channels.options
+          }
+      ]],
     R.div_ [
       R.div {style: (css {display: "inline"}), children: [
         R.text "Room Dimensions (feet)",
@@ -81,19 +95,18 @@ homeTheaterForm {dispatch, fields} = do
           style: (css {width: 80})}
       ]}
     ],
-
-    R.div_ [
-      R.div {style: (css {display: "inline"}), children: [
-        R.text "Screen Size (diagonal): ",
-        R.input {
-          type: "number",  
-          value: show fields.screenSize.value, 
-          className: errorClass fields.screenSize.error,
-          onChange: onClickHandler (_.screenSize.id) identity,
-          style: (css {width: 80})
-        }
-      ]}
-    ],
+    onlyWhen isTheaterMode $ 
+      R.div_ [
+        R.div {style: (css {display: "inline"}), children: [
+          R.text "Screen Size (diagonal): ",
+          R.input {
+            type: "number",  
+            value: show fields.screenSize.value, 
+            className: errorClass fields.screenSize.error,
+            onChange: onClickHandler (_.screenSize.id) identity,
+            style: (css {width: 80})
+          }
+        ]},
     R.div_ [
       R.label_ [ 
         R.text "Aspect Ratio",
@@ -104,8 +117,12 @@ homeTheaterForm {dispatch, fields} = do
       ]
     ]
   ]
-]
+  ]
 
+
+
+onlyWhen :: Boolean -> JSX -> JSX 
+onlyWhen pred jsx = if pred then jsx else R.div_ []
 
 makeOption :: SelectField -> String -> JSX 
 makeOption props option = do 

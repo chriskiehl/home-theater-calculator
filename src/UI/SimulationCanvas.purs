@@ -5,6 +5,7 @@ import Prelude
 import Data.Int (toNumber)
 import Effect (Effect)
 import React.Basic (JSX)
+import React.Basic.DOM (css)
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (preventDefault)
 import React.Basic.Events (handler)
@@ -24,6 +25,7 @@ mainCanvas {dispatch} =
       id: "canvas", 
       width: "896", 
       height: "608",
+      style: css {maxWidth: "100%"},
       onMouseDown: onMouseDown MouseDown,
       onMouseUp: onMouseDown MouseUp,
       onMouseMove: onMouseDown MouseMove 
