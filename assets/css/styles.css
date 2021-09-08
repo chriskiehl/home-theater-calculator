@@ -5,3 +5,12 @@
     margin: auto; 
     box-sizing: border-box;
 }
+
+#zoom-button {
+  width: 64px;
+  height: 64px;
+  background-color: red;
+  position: absolute;
+  bottom: 1px; 
+  right: 1px;
+}
