@@ -47,7 +47,7 @@ render ctx state = do
   
   -- drawFirstReflections ctx state 
   -- drawRearReflections ctx state 
-  -- drawAllReflections ctx state
+  drawAllReflections ctx state
 
   let uu = C.toIso {x: 0.0, y: 0.0} state.worldOrigin state.zoomMultiplier
 

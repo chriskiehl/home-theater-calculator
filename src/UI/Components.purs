@@ -38,19 +38,23 @@ readout state dispatch = R.div {children: [
         type: "range", 
         min: "0.0", 
         max: (show stats.maximumListeningDistance), 
-        step: "0.01", 
+        step: "0.001", 
         value: (toStringWith (fixed 2) $ stats.distanceFromTv),
-        onChange: handler getValue $ \x -> dispatch $ ChangeListenerPosSlider x 
+        onChange: handler getValue $ \value -> dispatch $ ChangeListenerSlider value 
       },
       R.text $ (toStringWith (fixed 2) $ stats.distanceFromTv) <> "\""
     ],
     R.div_ [
       R.text "Distance from wall: ",
-      R.text (toStringWith (fixed 2) stats.maxDisplacement),
+      -- R.text (show stats.maxDisplacement),
       R.input {
         type: "range", 
         min: "0.1", 
-        max: (show stats.maxDisplacement), step: "0.001", value: toStringWith (fixed 2) (stats.frontsDistanceFromWall) },
+        max: (toStringWith (fixed 1) stats.maxDisplacement), 
+        step: "0.001", 
+        value: toStringWith (fixed 2) (stats.frontsDistanceFromWall), 
+        onChange: handler getValue $ \value -> dispatch $ ChangeTranslateSlider value 
+      },
       R.text $ toStringWith (fixed 2) (stats.frontsDistanceFromWall) <> "\""
     ],
     R.div_ [R.text ("Speaker Angle Distance: " <> show (stats.speakerDistance))],

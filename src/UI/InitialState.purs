@@ -29,8 +29,8 @@ defaultSpecs = {
 initialState :: ApplicationState
 initialState = {
   cursor: {localPosition: {x: 0.0, y: 0.0}, isoPosition: {x: 0.0, y: 0.0}},
-  worldOrigin: {x: 448.0, y: 248.0},
-  zoomMultiplier: 1.0,
+  worldOrigin: {x: 448.0, y: 100.0},
+  zoomMultiplier: 2.0,
   sprites: SpriteMap {
     chair: (Sprites.blockSprite Chair){pos={x: 0.0, y: 0.0}},
     leftFront: Sprites.twoStackSprite LeftFront,

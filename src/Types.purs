@@ -27,8 +27,11 @@ type Position = Vector
 -- | the top-left corner of the canvas
 type LocalPosition = Position 
 
--- | A position where its origin is set to the top-center 
--- | i.e. (0, 0) of the isometric coordinate system. 
+-- | A position where its origin (0, 0) is set to the top-center 
+-- | of the "world origin" -- an arbitrary position in space (generally 
+-- | the middle(ish) of the screen). It's the Isometric coordinate system
+-- | offset by N amount such that it's anchored somewhere useful rather 
+-- | than somewhere off screen
 type IsometricPosition = LocalPosition
 
 -- | 
@@ -322,7 +325,8 @@ data Action
   | StartDrag Sprite LocalPosition
   | StopDrag 
   | ToggleZoom
-  | ChangeListenerPosSlider String 
+  | ChangeListenerSlider String 
+  | ChangeTranslateSlider String 
   
 
 

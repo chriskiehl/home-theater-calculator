@@ -43,7 +43,8 @@ reducer state action = case action of
   MouseUp pos -> Core.handleMouseUp state 
   MouseMove pos -> Core.handleMouseMove state pos
   ToggleZoom -> Core.toggleZoomLevel state  
-  ChangeListenerPosSlider rawValue -> Core.handleSliderChange state rawValue 
+  ChangeListenerSlider rawValue -> Core.handleSliderChange state rawValue 
+  ChangeTranslateSlider rawValue -> Core.handleTranslateSlider state rawValue 
   _ -> state 
 
 

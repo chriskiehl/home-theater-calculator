@@ -18,7 +18,7 @@ import DegreeMath (atan, cos, sin, tan)
 import Math (round)
 import Math as Math
 import ParseInt (parseBase10)
-import Types (AnchorPosition(..), ApplicationState, AspectRatio, AudioChannels(..), Degree, FOV, FeetInches, Footprint, FormID(..), Geometry, IsometricPosition, LayoutDescriptor, LayoutStatistics, LocalPosition, Mode(..), Position, PresenceRating(..), Sprite, SpriteID(..), SpriteMap(..), TvSpecs, WorldPosition, values)
+import Types (AnchorPosition(..), AspectRatio, AudioChannels(..), Degree, FOV, FeetInches, Footprint, FormID(..), Geometry, IsometricPosition, LayoutDescriptor, LayoutStatistics, LocalPosition, Mode(..), Position, PresenceRating(..), Sprite, SpriteID(..), SpriteMap(..), TvSpecs, WorldPosition, ApplicationState, values)
 import Vector (Matrix2D, Vector, dist, (:**:), (:*:), (:+:), (:-:), rotate)
 import Web.Storage.Event.StorageEvent (newValue)
 
@@ -106,17 +106,22 @@ updateField state id value = case id of
    
 handleSliderChange :: ApplicationState -> String -> ApplicationState  
 handleSliderChange state rawValue = case (fromString rawValue) of  
-  Just newValue -> dispatchDrag state {x: chair.pos.x, y: newValue + tv.pos.y} (spy "uhh???" chair{isBeingDragged=true}  )
-  Nothing -> (spy "it is failing????" state  )
+  Just newValue -> dispatchDrag state {x: chair.pos.x, y: newValue + tv.pos.y} chair{isBeingDragged=true} 
+  Nothing -> state 
   where  
   (SpriteMap sm) = state.sprites  
   chair = sm.chair  
   tv = sm.tv
-  _ = spy "chair:" [chair.pos.x, chair.pos.y]
-  _ = spy "new pos:"  [chair.pos.x, (fromMaybe 0.0 (fromString rawValue)) + tv.pos.y]
-  -- localPos = \val -> toIso  state.worldOrigin state.zoomMultiplier  
   
 
+handleTranslateSlider :: ApplicationState -> String -> ApplicationState
+handleTranslateSlider state rawValue = case (fromString rawValue) of 
+  Just newValue -> dispatchDrag state {x: leftFront.pos.x, y: newValue + speakerWidth} leftFront{isBeingDragged=true}  
+  Nothing -> state 
+  where  
+  (SpriteMap sm) = state.sprites  
+  leftFront = sm.leftFront 
+  speakerWidth = 1.0
 
 parseMode :: String -> Maybe Mode 
 parseMode raw = case raw of 
@@ -308,12 +313,12 @@ computeMaxListeningPostion {geometry, form} = if form.channels.value == "5.0" th
 computeMaxDisplacement :: ApplicationState -> Number 
 computeMaxDisplacement {geometry, form, sprites, tvSpecs} = 
   if form.channels.value == "5.0" 
-    then geometry.depth - radius50 - distanceFromTv
+    then geometry.depth - radius50 - distanceFromTv - 1.5
     else geometry.depth - distanceFromTv - 2.0
   where 
   distanceFromTv = (chairTvDistance sprites tvSpecs) 
   radius = distanceFromTv / (cos 30.0)
-  radius50 = (radius / (cos 20.0)) + 1.0
+  radius50 = radius * (sin 20.0)
 
 
 
