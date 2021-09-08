@@ -21,7 +21,7 @@ main :: Effect Unit
 main = do
   log "🍝"
   let _ = (map toNonElementParentNode $ document =<< window)
-  container <- getElementById "app" =<< (map toNonElementParentNode $ document =<< window)
+  container <- getElementById "article" =<< (map toNonElementParentNode $ document =<< window)
   case container of
     Nothing -> throw "Container element not found."
     Just element  -> do 

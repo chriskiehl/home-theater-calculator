@@ -4,7 +4,8 @@ module Coordinates where
 
 import Prelude
 
-import Types (LocalPosition, Position)
+import Constants (tileWidth)
+import Types (LocalPosition, Position, WorldPosition, IsometricPosition)
 import Vector (Matrix2D, Vector, (:**:), (:*:), (:+:), (:-:))
 
 isoTransform :: Matrix2D
@@ -16,9 +17,12 @@ cartTransform = {a1: 0.5, a2: -0.5,
                  b1: 1.0, b2:  1.0}             
 
 
-toIso :: Vector -> Vector 
-toIso v = ((16.0 :*: (v)) :**: isoTransform) :+: {x: 448.0, y: 250.0} 
+toIso :: WorldPosition -> Position -> Number -> IsometricPosition 
+toIso v worldOrigin zoom = (((tileWidth * zoom) :*: (v)) :**: isoTransform) :+: worldOrigin 
 
 
-localToIso :: LocalPosition -> Position
-localToIso p = (1.0/16.0) :*: ((p :-: {x: 448.0, y: 250.0}) :**: cartTransform)
+localToIso :: LocalPosition -> LocalPosition -> Number -> WorldPosition
+localToIso p worldOrigin zoom = (1.0/(tileWidth * zoom) ) :*: ((p :-: worldOrigin) :**: cartTransform)
+
+worldIsoToLocal :: Position -> Position -> Number -> Position 
+worldIsoToLocal p worldOrigin zoom = (tileWidth * zoom) :*: ((p :-: worldOrigin) :**: cartTransform)

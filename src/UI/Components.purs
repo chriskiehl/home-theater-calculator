@@ -2,7 +2,10 @@ module Components where
 
 import Prelude
 
+import Constants (tileWidth)
+import Core as Core
 import Data.Maybe (Maybe(..), isJust)
+import Data.Number.Format (fixed, toStringWith)
 import Debug (spy)
 import Effect (Effect)
 import Effect.Uncurried (EffectFn1)
@@ -11,7 +14,8 @@ import React.Basic.DOM as R
 import React.Basic.DOM.Events (preventDefault)
 import React.Basic.Events (SyntheticEvent, handler, handler_)
 import React.Basic.Hooks (Component, JSX, component)
-import Types (Action(..), FormField, FormFields, FormID, Mode(..), NumericField, SelectField, TextField, ApplicationState)
+import Reflections (collectInteractionPoints, leftReflections)
+import Types (Action(..), ApplicationState, FormField, FormFields, FormID, Mode(..), NumericField, SelectField, SpriteMap(..), TextField)
 import Utils (getValue)
 import Web.Event.EventTarget (dispatchEvent)
 
@@ -23,6 +27,57 @@ report :: JSX
 report = do 
   R.text "Buncha stats and stuff here"
 
+-- R.text (("Distance: "<> (toStringWith (fixed 2) $ stats.distanceFromTv / 12.0) <> "\""))
+
+readout :: ApplicationState -> (Action -> Effect Unit) -> JSX 
+readout state dispatch = R.div {children: [
+    R.div_ [R.text ("FOV: " <> (toStringWith (fixed 2) stats.fov) <> "°  " <> "[" <> show stats.presence <> "]")],
+    R.div_ [
+      R.text "Distance to TV:",
+      R.input {
+        type: "range", 
+        min: "0.0", 
+        max: (show stats.maximumListeningDistance), 
+        step: "0.01", 
+        value: (toStringWith (fixed 2) $ stats.distanceFromTv),
+        onChange: handler getValue $ \x -> dispatch $ ChangeListenerPosSlider x 
+      },
+      R.text $ (toStringWith (fixed 2) $ stats.distanceFromTv) <> "\""
+    ],
+    R.div_ [
+      R.text "Distance from wall: ",
+      R.text (toStringWith (fixed 2) stats.maxDisplacement),
+      R.input {
+        type: "range", 
+        min: "0.1", 
+        max: (show stats.maxDisplacement), step: "0.001", value: toStringWith (fixed 2) (stats.frontsDistanceFromWall) },
+      R.text $ toStringWith (fixed 2) (stats.frontsDistanceFromWall) <> "\""
+    ],
+    R.div_ [R.text ("Speaker Angle Distance: " <> show (stats.speakerDistance))],
+    R.div_ [R.text ("1st Reflection: " <> (toStringWith (fixed 2) ((firstReflection.reflection.y ))))],
+    R.div_ [R.text ("2nd Reflection: " <> (toStringWith (fixed 2) ((secondReflection.reflection.y))))],
+    R.div_ [R.text ("Rear Reflection: " <> (toStringWith (fixed 2) ((thirdReflection.reflection.x ))))]
+  ]}
+  where 
+  stats = Core.homeTheaterStats state
+  (SpriteMap sprites) = state.sprites 
+  {firstReflection, secondReflection, thirdReflection} = leftReflections $ collectInteractionPoints state.sprites state.geometry
+
+
+{-
+Canvas.fillText ctx   20.0 200.0
+Canvas.fillText ctx   20.0 220.0
+Canvas.fillText ctx ("2nd Reflection: " <> (toStringWith (fixed 2) ((secondReflection.reflection.y))))  20.0 245.0
+Canvas.fillText ctx ("3rd Reflection: " <> (toStringWith (fixed 2) ((thirdReflection.reflection.x ))))  20.0 280.0
+
+let ggg = ((tileWidth :*: {x: 0.0, y: 0.0}) :**: isoTransform) :+: state.worldOrigin
+let con = C.localToIso {x: 0.0, y: 0.0} state.worldOrigin
+Canvas.fillText ctx ("local: (" <> (show state.cursor.localPosition.x) <> ", " <> (show state.cursor.localPosition.y) <> ")")  600.0 30.0
+Canvas.fillText ctx ("iso: (" <> (show state.cursor.isoPosition.x) <> ", " <> (show state.cursor.isoPosition.y) <> ")")  600.0 60.0
+  Canvas.fillText ctx ("iso: (" <> (show ggg.x) <> ", " <> (show ggg.y) <> ")")  600.0 90.0
+
+
+-}
 
 errorClass :: Maybe String -> String 
 errorClass (Just _) = "error"

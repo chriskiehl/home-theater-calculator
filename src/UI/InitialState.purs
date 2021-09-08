@@ -1,5 +1,6 @@
 module InitialState where
 
+import Constants (tileWidth)
 import Data.Int (toNumber)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
@@ -10,7 +11,7 @@ import Types (AnchorPosition(..), ApplicationState, FormID(..), Geometry, Mode(.
 
 initialWidth = 15
 initialDepth = 18
-initialScreenSize = 60
+initialScreenSize = 50
 
 initialGeometry :: Geometry
 initialGeometry = {
@@ -27,6 +28,9 @@ defaultSpecs = {
 
 initialState :: ApplicationState
 initialState = {
+  cursor: {localPosition: {x: 0.0, y: 0.0}, isoPosition: {x: 0.0, y: 0.0}},
+  worldOrigin: {x: 448.0, y: 248.0},
+  zoomMultiplier: 1.0,
   sprites: SpriteMap {
     chair: (Sprites.blockSprite Chair){pos={x: 0.0, y: 0.0}},
     leftFront: Sprites.twoStackSprite LeftFront,

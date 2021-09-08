@@ -54,10 +54,10 @@ outlineFootprint :: Context2D -> Sprite -> Effect Unit
 outlineFootprint ctx s = do 
   let {topLeft, topRight, bottomLeft, bottomRight} = Core.footprint s 
   Canvas.setFillStyle ctx "purple"
-  Canvas.fillRect ctx {x: (toIso bottomLeft).x, y: (toIso bottomLeft).y, width: 2.0, height: 2.0}
-  Canvas.fillRect ctx {x: (toIso bottomRight).x, y: (toIso bottomRight).y, width: 2.0, height: 2.0}
-  Canvas.fillRect ctx {x: (toIso topLeft).x, y: (toIso topLeft).y, width: 2.0, height: 2.0}
-  Canvas.fillRect ctx {x: (toIso topRight).x, y: (toIso topRight).y, width: 2.0, height: 2.0}
+  -- Canvas.fillRect ctx {x: (toIso bottomLeft).x, y: (toIso bottomLeft).y, width: 2.0, height: 2.0}
+  -- Canvas.fillRect ctx {x: (toIso bottomRight).x, y: (toIso bottomRight).y, width: 2.0, height: 2.0}
+  -- Canvas.fillRect ctx {x: (toIso topLeft).x, y: (toIso topLeft).y, width: 2.0, height: 2.0}
+  -- Canvas.fillRect ctx {x: (toIso topRight).x, y: (toIso topRight).y, width: 2.0, height: 2.0}
 
 
 anyOfEm :: Number -> Number -> List Sprite -> Boolean 
@@ -75,8 +75,8 @@ traceActualTvSize ctx state = do
   let screenWidth = (cos diagonalDegrees) * diagonalLength
   let isoWidth = ((cos 30.0) * screenWidth )
   let halfIsoWidth = (isoWidth / 2.0) / 16.0
-  let pos = toIso (tv.pos)
-  let pos2 = toIso (tv.pos :-: {x: halfIsoWidth, y: 0.0})
+  let pos = toIso (tv.pos) state.worldOrigin  state.zoomMultiplier
+  let pos2 = toIso (tv.pos :-: {x: halfIsoWidth, y: 0.0}) state.worldOrigin  state.zoomMultiplier
   Canvas.setFillStyle ctx "orange"
   Canvas.setStrokeStyle ctx "orange"
   Canvas.fillRect ctx {x: pos.x, y: pos.y, width: 2.0, height: 2.0}
@@ -93,20 +93,20 @@ drawAllReflectionsBy :: (WallInteractionPoints -> PrimaryReflections) -> Context
 drawAllReflectionsBy f ctx state = do 
   let (SpriteMap sprites) = state.sprites 
   let {firstReflection, secondReflection, thirdReflection} = f $ collectInteractionPoints state.sprites state.geometry
-  let frs = toIso firstReflection.source
-  let frd = toIso firstReflection.dest
-  let frr = toIso firstReflection.reflection
+  let frs = toIso firstReflection.source state.worldOrigin state.zoomMultiplier
+  let frd = toIso firstReflection.dest state.worldOrigin state.zoomMultiplier
+  let frr = toIso firstReflection.reflection state.worldOrigin state.zoomMultiplier
 
-  let srs = toIso secondReflection.source
-  let srd = toIso secondReflection.dest
-  let srr = toIso secondReflection.reflection
+  let srs = toIso secondReflection.source state.worldOrigin state.zoomMultiplier
+  let srd = toIso secondReflection.dest state.worldOrigin state.zoomMultiplier
+  let srr = toIso secondReflection.reflection state.worldOrigin state.zoomMultiplier
 
-  let trs = toIso thirdReflection.source
-  let trd = toIso thirdReflection.dest
-  let trr = toIso thirdReflection.reflection
+  let trs = toIso thirdReflection.source state.worldOrigin state.zoomMultiplier
+  let trd = toIso thirdReflection.dest state.worldOrigin state.zoomMultiplier
+  let trr = toIso thirdReflection.reflection state.worldOrigin state.zoomMultiplier
   
   Canvas.beginPath ctx 
-  -- Canvas.setLineWidth ctx 3.0
+  Canvas.setLineWidth ctx 3.0
   Canvas.moveTo ctx frs.x frs.y  
   Canvas.lineTo ctx frr.x frr.y 
   Canvas.lineTo ctx frd.x frd.y 

@@ -4,7 +4,7 @@ import Prelude
 
 import CanvasSupport (Environment)
 import CanvasSupport as CanvasSupport
-import Components (controls, homeTheaterForm, report, hud)
+import Components (controls, homeTheaterForm, hud, readout, report)
 import Control.Monad.Trans.Class (lift)
 import Core as Core
 import Data.Int (toNumber)
@@ -41,7 +41,9 @@ reducer state action = case action of
   UpdateField id value -> Core.updateField state id value 
   MouseDown pos -> Core.handleMouseDown state pos 
   MouseUp pos -> Core.handleMouseUp state 
-  MouseMove pos -> Core.handleMouseMove state pos  
+  MouseMove pos -> Core.handleMouseMove state pos
+  ToggleZoom -> Core.toggleZoomLevel state  
+  ChangeListenerPosSlider rawValue -> Core.handleSliderChange state rawValue 
   _ -> state 
 
 
@@ -90,8 +92,9 @@ application = do
     pure $ fragment [
       R.div {children: [
         R.div_ [
-          hud {dispatch, state},
+          R.h1_ [R.text "Home Theater Calculator"],
           mainCanvas {dispatch},
+          readout state dispatch,
           controls {dispatch, fields: state.form}
         ],
         report 

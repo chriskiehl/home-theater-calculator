@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Int (toNumber)
 import Effect (Effect)
+import Graphics.Canvas (CanvasElement)
 import React.Basic (JSX)
 import React.Basic.DOM (css)
 import React.Basic.DOM as R
@@ -20,19 +21,24 @@ type CanvasProps = {
 
 mainCanvas :: CanvasProps -> JSX
 mainCanvas {dispatch} = 
-  R.div {className: "", children: [
-    R.canvas {
-      id: "canvas", 
-      width: "896", 
-      height: "608",
-      style: css {maxWidth: "100%"},
-      onMouseDown: onMouseDown MouseDown,
-      onMouseUp: onMouseDown MouseUp,
-      onMouseMove: onMouseDown MouseMove 
-    } 
-  ]}
+  R.div {
+    style: css {position: "relative"},
+    children: [
+      R.canvas {
+        id: "canvas", 
+        width: "896", 
+        height: "608",
+        style: css {maxWidth: "100%"},
+        onMouseDown: onMouseDown MouseDown,
+        onMouseUp: onMouseDown MouseUp,
+        onMouseMove: onMouseDown MouseMove
+      },
+      R.button {id: "zoom-button", onClick: handler identity \_ -> dispatch ToggleZoom}
+    ]}
   where 
-  onMouseDown eventType = handler canvasPosition \event -> dispatch $ asType eventType event
+  onMouseDown eventType = handler canvasPosition \event -> do 
+    position <- event 
+    dispatch $ asType eventType position
 
 asType :: (Vector -> Action) -> Position -> Action 
 asType t pos = t pos

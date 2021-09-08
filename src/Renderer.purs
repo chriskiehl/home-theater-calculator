@@ -5,6 +5,8 @@ import Prelude
 
 import CanvasSupport (fromDataSource)
 import Constants (tileWidth)
+import Coordinates as C
+import Core (chairTvDistance)
 import Core as Core
 import Data.Array as Array
 import Data.Foldable (for_)
@@ -17,12 +19,14 @@ import Debug (spy)
 import Debugging (drawAllReflections, highlightHitboxes, outlineFootprint, traceActualTvSize)
 import DegreeMath (cos)
 import Effect (Effect)
+import Graphcs (block, blockChunkie)
 import Graphics.Canvas (Context2D)
 import Graphics.Canvas as Canvas
+import Graphics.Canvas as Cavnas
 import Math ((%))
 import Reflections (collectInteractionPoints, leftReflections)
 import Sprites as Sprites
-import Types (AnchorPosition(..), Degree, Sprite, SpriteID(..), SpriteMap(..), ApplicationState, values, valuesL)
+import Types (AnchorPosition(..), ApplicationState, Degree, Position, Sprite, SpriteID(..), SpriteMap(..), values, valuesL)
 import Vector (Matrix2D, Vector, dist, rotate, (:**:), (:*:), (:+:), (:-:))
 
 render :: Context2D -> ApplicationState -> Effect Unit
@@ -32,29 +36,91 @@ render ctx state = do
   
   tilebackground ctx 
   renderFloor ctx state 
-  renderWalls ctx state 
+  -- renderWalls ctx state 
   drawCenterLine ctx state 
   -- drawLines ctx state 
   -- drawStudioLines ctx state 
   renderSprites ctx state
   -- highlightHitboxes ctx state
   for_ (values state.sprites) (outlineFootprint ctx)
-  traceActualTvSize ctx state 
+  -- traceActualTvSize ctx state 
   
   -- drawFirstReflections ctx state 
   -- drawRearReflections ctx state 
-  drawAllReflections ctx state
+  -- drawAllReflections ctx state
+
+  let uu = C.toIso {x: 0.0, y: 0.0} state.worldOrigin state.zoomMultiplier
 
   Canvas.setFont ctx "30px Arial"
-  Canvas.fillText ctx ("FOV: " <> (toStringWith (fixed 2) stats.fov) <> "°  " <> "[" <> show stats.presence <> "]") 20.0 80.0
-  Canvas.fillText ctx ("Distance: "<> (toStringWith (fixed 2) $ stats.distanceFromTv / 12.0) <> "\"") 20.0 110.0
-  Canvas.fillText ctx ("Speaker Distance: " <> show (stats.speakerDistance / 12.0)) 20.0 170.0
-  Canvas.fillText ctx ("Main's distance from wall: " <> toStringWith (fixed 2) ((stats.frontsDistanceFromWall * 16.0) / 12.0) <> "\"" )  20.0 200.0
-  Canvas.fillText ctx ("1st Reflection: " <> (toStringWith (fixed 2) ((firstReflection.reflection.y ))))  20.0 220.0
-  Canvas.fillText ctx ("2nd Reflection: " <> (toStringWith (fixed 2) ((secondReflection.reflection.y))))  20.0 245.0
-  Canvas.fillText ctx ("3rd Reflection: " <> (toStringWith (fixed 2) ((thirdReflection.reflection.x ))))  20.0 280.0
+  let ggg = ((tileWidth :*: {x: 0.0, y: 0.0}) :**: isoTransform) :+: state.worldOrigin
+  let con = C.localToIso {x: 0.0, y: 0.0} state.worldOrigin
+  Canvas.fillText ctx ("local: (" <> (show state.cursor.localPosition.x) <> ", " <> (show state.cursor.localPosition.y) <> ")")  600.0 30.0
+  Canvas.fillText ctx ("iso: (" <> (toStringWith (fixed 2) state.cursor.isoPosition.x) <> ", " <> (toStringWith (fixed 2) state.cursor.isoPosition.y) <> ")")  600.0 60.0
+  Canvas.fillText ctx ("iso: (" <> (show ggg.x) <> ", " <> (show ggg.y) <> ")")  600.0 90.0
+  Canvas.fillText ctx ("round trip: " <> (show uu))  500.0 120.0
+
+  
+
+  -- Canvas.fillRect ctx {x: 800.0, y: 500.0, width: 64.0, height: 64.0}   
+    
+  let iii = C.localToIso state.worldOrigin state.worldOrigin   
+      jjj = C.toIso {x: 0.0, y: 0.0} state.worldOrigin   
+  -- Cavnas.fillRect ctx {x: ggg.x, y: ggg.y, width: 20.0, height: 20.0}  
+  
+  let sss = Core.anchorAdjusted (Sprites.twoStackSprite LeftRear){anchor=CenterEast, pos={x: 0.0, y: 0.0}}  
+  drawSprite ctx sss state.worldOrigin state.zoomMultiplier  
+  
+  Cavnas.setFillStyle ctx "green"  
+  Cavnas.fillRect ctx {x: 347.0, y: 238.0, width: 10.0, height: 10.0}  
+    
+  let (SpriteMap sm) = state.sprites  
+    
+  let currentCenter = sprites.chair 
+  let tv = sprites.tv 
+  let distance = (dist currentCenter.pos tv.pos) 
+  let rad = distance / (cos 30.0) 
+
+  let chairTvInterDistance = (Core.chairTvDistance state.sprites state.tvSpecs) / 16.0
+  let pos = toIso sm.chair.pos state.worldOrigin state.zoomMultiplier 
+  let width = (state.geometry.width / 2.0) - 1.0
+  let radius = (width / (cos 20.0)) -- ~7.981 
+  let maxDistance = radius * (cos 30.0)
+  let oneTen = (rotate {x: 0.0, y: -radius} (-110.0)) :+: (sm.chair.pos) -- :+: {x: 1.0, y: 0.0})
+  let oneTen' = toIso oneTen state.worldOrigin state.zoomMultiplier 
+
+  let r30 = (rotate {x: 0.0, y: -radius} (30.0)) :+: (sm.chair.pos) -- :+: {x: 1.0, y: 0.0})
+  let r30' = toIso r30 state.worldOrigin state.zoomMultiplier 
+  let cc = toIso (sm.chair.pos :-: {x: 0.0, y: chairTvInterDistance}) state.worldOrigin state.zoomMultiplier 
+
+  Cavnas.fillText ctx ("distance: " <> show distance) 100.0 100.0
+  Cavnas.fillText ctx ("max dist: " <> show maxDistance) 100.0 130.0
+  Cavnas.fillText ctx ("inter chair-tv: " <> show chairTvInterDistance) 100.0 160.0
+  -- Cavnas.fillText ctx (show $ stats.distanceFromTv / 16.0) 100.0 220.0
+  Cavnas.fillText ctx (show $ stats.maxDisplacement) 100.0 220.0
+
+  Canvas.beginPath ctx 
+  Canvas.moveTo ctx pos.x pos.y 
+  Cavnas.setLineWidth ctx 1.0
+  Cavnas.setStrokeStyle ctx "black"
+  Cavnas.lineTo ctx oneTen'.x oneTen'.y
+  Canvas.closePath ctx 
+  Canvas.stroke ctx
+
+  Canvas.moveTo ctx pos.x pos.y 
+  Cavnas.setLineWidth ctx 1.0
+  Cavnas.setStrokeStyle ctx "black"
+  Cavnas.lineTo ctx r30'.x r30'.y
+  Canvas.closePath ctx 
+  Canvas.stroke ctx
+  
+  -- Canvas.moveTo ctx pos.x pos.y 
+  -- Cavnas.lineTo ctx cc.x cc.y
+  -- Canvas.closePath ctx 
+  -- Canvas.stroke ctx
+
   where 
-  stats = Core.homeTheaterStats state.sprites state.tvSpecs 
+
+  stats = Core.homeTheaterStats state
   (SpriteMap sprites) = state.sprites 
   {firstReflection, secondReflection, thirdReflection} = leftReflections $ collectInteractionPoints state.sprites state.geometry
 
@@ -86,7 +152,7 @@ renderSprites ctx state = do
   for_ (sortBy (comparing (_.pos.x)) (valuesL state.sprites)) \s -> do
     let sprt = Core.anchorAdjusted s
     if sprt.enabled 
-      then drawSprite ctx sprt 
+      then drawSprite ctx sprt state.worldOrigin state.zoomMultiplier
       else pure unit 
 
 
@@ -96,40 +162,40 @@ renderSprites ctx state = do
       then do 
         Canvas.setFont ctx "30px 'Boxy-Bold'"
         Canvas.setFillStyle ctx "white"  
-        Canvas.fillText ctx (show sprt.id) (toIso sprt.pos).x (toIso sprt.pos).y
+        Canvas.fillText ctx (show sprt.id) (toIso sprt.pos state.worldOrigin state.zoomMultiplier).x (toIso sprt.pos state.worldOrigin state.zoomMultiplier).y
       else pure unit 
 
   Canvas.setFillStyle ctx "red"
   for_ (values state.sprites) \s -> 
-    let ss = ((16.0 :*: s.pos) :**: isoTransform) :+: {x: 448.0, y: 250.0} 
+    let ss = ((tileWidth :*: s.pos) :**: isoTransform) :+: {x: 435.5, y: 295.5} 
     in Canvas.fillRect ctx {x: ss.x, y: ss.y, width: 2.0, height: 2.0}
 
 
 renderFloor :: Context2D -> ApplicationState -> Effect Unit 
-renderFloor ctx {geometry} = do 
+renderFloor ctx {geometry, worldOrigin, zoomMultiplier} = do 
   Canvas.setLineWidth ctx 1.0
   let width = guaranteedInt geometry.width
   let depth = guaranteedInt geometry.depth
   for_ (Array.range 0 (width - 1)) \x -> 
     for_ (Array.range 0 (depth - 1)) \y -> do 
       Canvas.setStrokeStyle ctx "black"
-      strokeIso3 ctx (toNumber x) (toNumber y) 
+      strokeIso3 ctx (toNumber x) (toNumber y) worldOrigin zoomMultiplier
 
 
 -- | TODO: refactor me once graphics are complete and larger sprites 
--- | are available.  Currenlty builds the walls "by hand" 
+-- | are available. Currenlty builds the walls "by hand" 
 renderWalls :: Context2D -> ApplicationState -> Effect Unit 
-renderWalls ctx {geometry} = do 
+renderWalls ctx {geometry, worldOrigin, zoomMultiplier} = do 
   let width = guaranteedInt geometry.width
       depth = guaranteedInt geometry.depth
-      s = Core.anchorOrigin (Sprites.blockSprite AdHoc){anchor=LogicalOrigin, pos={x: 0.0, y: 0.0}}
+      s = Core.anchorOrigin (Sprites.blockSprite AdHoc){anchor=LogicalOrigin, pos={x: 0.0, y: 0.0}, image=block}
   for_ [0, -1, -2, -3] \yOffset ->
     for_ (Array.range (-1) (depth - 1)) \y -> do 
-      drawSprite ctx (Core.anchorOrigin s{pos={x: toNumber ((-1) + yOffset), y: (toNumber (y + yOffset))}})
+      drawSprite ctx (Core.anchorOrigin s{pos={x: toNumber ((-1) + yOffset), y: (toNumber (y + yOffset))}}) worldOrigin zoomMultiplier
   
   for_ [0, -1, -2, -3] \yOffset ->
     for_ (Array.range 0 (width - 1)) \x -> do 
-      drawSprite ctx (Core.anchorOrigin s{pos={x: (toNumber (x + yOffset)), y: toNumber ((-1) + yOffset)}})
+      drawSprite ctx (Core.anchorOrigin s{pos={x: (toNumber (x + yOffset)), y: toNumber ((-1) + yOffset)}}) worldOrigin zoomMultiplier
 
 
 drawLines :: Context2D -> ApplicationState -> Effect Unit 
@@ -147,10 +213,10 @@ drawLines ctx state = do
         qq' = rotate qq deg 
         p = center.pos 
         o = qq' :+: p 
-        pp = toIso p 
-        oo = toIso o
+        pp = toIso p state.worldOrigin state.zoomMultiplier 
+        oo = toIso o state.worldOrigin state.zoomMultiplier
 
-    Canvas.fillRect ctx {x: (toIso p).x, y: (toIso p).y, width: 1.0, height: 1.0}
+    Canvas.fillRect ctx {x: (toIso p state.worldOrigin state.zoomMultiplier).x, y: (toIso p state.worldOrigin state.zoomMultiplier).y, width: 1.0, height: 1.0}
     Canvas.setLineWidth ctx 3.0 
     Canvas.beginPath ctx 
     Canvas.moveTo ctx pp.x pp.y  
@@ -171,10 +237,10 @@ drawStudioLines ctx state = do
         qq' = rotate qq deg 
         p = center.pos 
         o = qq' :+: p 
-        pp = toIso p 
-        oo = toIso o
+        pp = toIso p state.worldOrigin state.zoomMultiplier
+        oo = toIso o state.worldOrigin state.zoomMultiplier
 
-    Canvas.fillRect ctx {x: (toIso p).x, y: (toIso p).y, width: 1.0, height: 1.0}
+    Canvas.fillRect ctx {x: (toIso p state.worldOrigin state.zoomMultiplier).x, y: (toIso p state.worldOrigin state.zoomMultiplier).y, width: 1.0, height: 1.0}
     Canvas.setLineWidth ctx 3.0 
     Canvas.beginPath ctx 
     Canvas.moveTo ctx pp.x pp.y  
@@ -186,8 +252,8 @@ drawStudioLines ctx state = do
 
 drawCenterLine :: Context2D -> ApplicationState -> Effect Unit 
 drawCenterLine ctx state = do 
-  let center = toIso {x: 0.0, y: state.geometry.depth / 2.0}
-      end = toIso $ {x: 0.0, y: state.geometry.depth / 2.0} :+: {x: state.geometry.width, y:0.0}
+  let center = toIso {x: 0.0, y: state.geometry.depth / 2.0} state.worldOrigin state.zoomMultiplier
+      end = toIso ({x: 0.0, y: state.geometry.depth / 2.0} :+: {x: state.geometry.width, y:0.0}) state.worldOrigin state.zoomMultiplier
   Canvas.beginPath ctx 
   Canvas.setStrokeStyle ctx "blue"
   Canvas.setLineWidth ctx 3.0  
@@ -195,18 +261,20 @@ drawCenterLine ctx state = do
   Canvas.lineTo ctx end.x end.y
   Canvas.stroke ctx 
 
-drawSprite :: Context2D -> Sprite -> Effect Unit 
-drawSprite ctx sprite = do 
+drawSprite :: Context2D -> Sprite -> Position -> Number -> Effect Unit 
+drawSprite ctx sprite worldOrigin zoomMultiplier = do 
   -- let _ = spy "drawNormal?" $ sprite.image == sprite.images.normal
-  _ <- Canvas.drawImage ctx (fromDataSource sprite.image) pos.x pos.y 
+  _ <- Canvas.drawImageScale ctx (fromDataSource sprite.image) pos.x pos.y (width * zoomMultiplier) (height * zoomMultiplier)
   pure unit 
   where 
-  pos = ((16.0 :*: (sprite.pos)) :**: isoTransform) :+: {x: canvCenter, y: 250.0} 
-  canvCenter = 448.0 
+  tilesize = zoomMultiplier * tileWidth
+  pos = ((tilesize :*: (sprite.pos)) :**: isoTransform) :+: worldOrigin
+  width  = 16.0 + (sprite.size.x * 16.0)
+  height = 8.0 + (sprite.size.x * 8.0) + (sprite.size.z * 16.0)
 
 
-strokeIso3 :: Context2D -> Number -> Number -> Effect Unit 
-strokeIso3 ctx x y = do 
+strokeIso3 :: Context2D -> Number -> Number -> Position -> Number -> Effect Unit 
+strokeIso3 ctx x y worldOrigin zoomLevel = do 
   _ <- Canvas.beginPath ctx
   _ <- Canvas.moveTo ctx p1.x p1.y
   _ <- Canvas.lineTo ctx p1.x p1.y
@@ -219,7 +287,7 @@ strokeIso3 ctx x y = do
   pure unit
   where 
   pos = {x, y}
-  f = \xx -> ((tileWidth :*: xx) :**: isoTransform) :+: {x: 448.0, y: 250.0}
+  f = \xx -> (((tileWidth * zoomLevel) :*: xx) :**: isoTransform) :+: worldOrigin
   p1 = f pos 
   p2 = f {x: pos.x+1.0, y: pos.y}
   p3 = f {x:pos.x+1.0, y: pos.y + 1.0}

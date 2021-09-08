@@ -5,7 +5,7 @@ import Types (Degree)
 import Vector (Vector)
 
 tileWidth :: Number 
-tileWidth = 32.0
+tileWidth = 16.0
 
 canvasWidth :: Number 
 canvasWidth = 896.0

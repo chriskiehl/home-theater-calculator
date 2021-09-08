@@ -29,9 +29,10 @@ type LocalPosition = Position
 
 -- | A position where its origin is set to the top-center 
 -- | i.e. (0, 0) of the isometric coordinate system. 
--- | Here, "local" is defined as 'roughly the middle of 
--- | the canvas where things are redered' for most purposes
 type IsometricPosition = LocalPosition
+
+-- | 
+type WorldPosition = LocalPosition
 
 -- | A raw DOM event client position. The is the current position 
 -- | relative to the user's browser window.  
@@ -227,7 +228,16 @@ type TvSpecs = {
   aspectRatio :: AspectRatio 
 }
 
+-- | for debugging; this is used to track 
+type CursorInfo = {
+  localPosition :: LocalPosition, 
+  isoPosition :: IsometricPosition
+}
+
 type ApplicationState = {
+  cursor :: CursorInfo,
+  zoomMultiplier :: Number, 
+  worldOrigin :: LocalPosition,
   tvSpecs :: TvSpecs,
   sprites :: SpriteMap Sprite,
   geometry :: Geometry,
@@ -311,6 +321,8 @@ data Action
   | MouseDown LocalPosition
   | StartDrag Sprite LocalPosition
   | StopDrag 
+  | ToggleZoom
+  | ChangeListenerPosSlider String 
   
 
 
@@ -359,5 +371,10 @@ type LayoutStatistics = {
   speakerDistance :: Number,
   -- distance from the front speakers to the 
   -- forward wall. 
-  frontsDistanceFromWall :: Number 
+  frontsDistanceFromWall :: Number, 
+  -- the maximum distance the listening position can be from 
+  -- the speakers before they would collide with room limitations
+  maximumListeningDistance :: Number, 
+
+  maxDisplacement :: Number 
 }    
