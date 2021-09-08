@@ -21,6 +21,7 @@ to generate this file without the comments in this block.
   , "exceptions"
   , "foldable-traversable"
   , "functions"
+  , "functors"
   , "integers"
   , "lists"
   , "math"
