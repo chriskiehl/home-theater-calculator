@@ -106,7 +106,6 @@ drawAllReflectionsBy f ctx state = do
   let trr = toIso thirdReflection.reflection state.worldOrigin state.zoomMultiplier
   
   Canvas.beginPath ctx 
-  Canvas.setLineWidth ctx 3.0
   Canvas.moveTo ctx frs.x frs.y  
   Canvas.lineTo ctx frr.x frr.y 
   Canvas.lineTo ctx frd.x frd.y 
@@ -131,16 +130,16 @@ drawRightReflections = drawAllReflectionsBy rightReflections
 
 drawAllReflections :: Context2D -> ApplicationState -> Effect Unit  
 drawAllReflections ctx state = do 
-  Canvas.setStrokeStyle ctx "red"
-  Canvas.setLineWidth ctx 3.0
+  Canvas.setStrokeStyle ctx "black"
+  Canvas.setLineWidth ctx 5.0
   drawLeftReflections ctx state 
   Canvas.setStrokeStyle ctx "white"
-  Canvas.setLineWidth ctx 2.0
+  Canvas.setLineWidth ctx 3.0
   drawLeftReflections ctx state 
   
-  Canvas.setStrokeStyle ctx "green"
-  Canvas.setLineWidth ctx 3.0
+  Canvas.setStrokeStyle ctx "black"
+  Canvas.setLineWidth ctx 5.0
   drawRightReflections ctx state
   Canvas.setStrokeStyle ctx "white"
-  Canvas.setLineWidth ctx 2.0
+  Canvas.setLineWidth ctx 3.0
   drawRightReflections ctx state

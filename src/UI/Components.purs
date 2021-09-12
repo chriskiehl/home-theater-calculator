@@ -12,10 +12,10 @@ import Effect.Uncurried (EffectFn1)
 import React.Basic.DOM (css)
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (preventDefault)
-import React.Basic.Events (SyntheticEvent, handler, handler_)
+import React.Basic.Events (SyntheticEvent, EventHandler, handler, handler_)
 import React.Basic.Hooks (Component, JSX, component)
 import Reflections (collectInteractionPoints, leftReflections)
-import Types (Action(..), ApplicationState, FormField, FormFields, FormID, Mode(..), NumericField, SelectField, SpriteMap(..), TextField)
+import Types (Action(..), ApplicationState, DispatchFn, FormField, FormFields, FormID, Mode(..), NumericField, SelectField, SpriteMap(..), TextField, TypedSelectField)
 import Utils (getValue)
 import Web.Event.EventTarget (dispatchEvent)
 
@@ -25,47 +25,234 @@ controls = homeTheaterForm
     
 report :: JSX 
 report = do 
-  R.text "Buncha stats and stuff here"
+  R.text ""
 
--- R.text (("Distance: "<> (toStringWith (fixed 2) $ stats.distanceFromTv / 12.0) <> "\""))
+
+pill :: String -> String -> JSX 
+pill label flavor = R.div {
+  className: "pill " <> flavor, 
+  children: [R.text label]
+}
+
+slider :: {min :: String, max :: String, value :: String, onChange :: EventHandler} -> JSX 
+slider props = R.div {
+  className: "slider",
+  children: [
+    R.div {className: "flex", children: [
+      R.input {
+        type: "range", 
+        style: css {flex: "1 1 auto"},
+        min: props.min, 
+        max: props.max, 
+        step: "0.001", 
+        value: props.value,
+        onChange: props.onChange  
+      },
+      R.div_ [R.text props.value]
+    ]}
+  ]
+}
+
+type ButtonGroupProps = {
+  leftButton :: String 
+}
+
+dispatchUpdate :: (Action -> Effect Unit) -> FormID -> (String -> String) -> EffectFn1 SyntheticEvent Unit 
+dispatchUpdate dispatch formId val = 
+  handler getValue $ \e -> 
+    dispatch $ UpdateField formId $ val e 
+
+
+btnGroup :: forall a . (Show a) => (Eq a) => {field :: TypedSelectField a, className :: String, dispatch :: DispatchFn} -> JSX 
+btnGroup {field, dispatch, className} = 
+  R.div {className: "btn-group", children: field.options # map \option -> 
+    R.button {
+      type: "button", 
+      className: "btn " <> className <> " " <> if option == field.value then "selected" else "", 
+      children: [R.text (show option)],
+      onClick: dispatchUpdate dispatch field.id (const (show option))
+    }
+  }
+
 
 readout :: ApplicationState -> (Action -> Effect Unit) -> JSX 
 readout state dispatch = R.div {children: [
-    R.div_ [R.text ("FOV: " <> (toStringWith (fixed 2) stats.fov) <> "°  " <> "[" <> show stats.presence <> "]")],
     R.div_ [
-      R.text "Distance to TV:",
-      R.input {
-        type: "range", 
-        min: "0.0", 
-        max: (show stats.maximumListeningDistance), 
-        step: "0.001", 
-        value: (toStringWith (fixed 2) $ stats.distanceFromTv),
-        onChange: handler getValue $ \value -> dispatch $ ChangeListenerSlider value 
-      },
-      R.text $ (toStringWith (fixed 2) $ stats.distanceFromTv) <> "\""
-    ],
-    R.div_ [
-      R.text "Distance from wall: ",
-      -- R.text (show stats.maxDisplacement),
-      R.input {
-        type: "range", 
-        min: "0.1", 
-        max: (toStringWith (fixed 1) stats.maxDisplacement), 
-        step: "0.001", 
-        value: toStringWith (fixed 2) (stats.frontsDistanceFromWall), 
-        onChange: handler getValue $ \value -> dispatch $ ChangeTranslateSlider value 
-      },
-      R.text $ toStringWith (fixed 2) (stats.frontsDistanceFromWall) <> "\""
-    ],
-    R.div_ [R.text ("Speaker Angle Distance: " <> show (stats.speakerDistance))],
-    R.div_ [R.text ("1st Reflection: " <> (toStringWith (fixed 2) ((firstReflection.reflection.y ))))],
-    R.div_ [R.text ("2nd Reflection: " <> (toStringWith (fixed 2) ((secondReflection.reflection.y))))],
-    R.div_ [R.text ("Rear Reflection: " <> (toStringWith (fixed 2) ((thirdReflection.reflection.x ))))]
+      R.div {style: css {margin: "10px 0"}, children: [
+        R.div {className: "text-center", children: [R.text "Designing"]}, 
+        btnGroup {field: state.form.mode, dispatch, className: ""}
+      ]},
+      onlyWhen isTheaterMode $
+        R.div {className: "flex group-padding", children: [
+          R.div {className: "flex-auto", children: [
+            R.div {className: "text-center", children: [R.text "Channels"]}, 
+            btnGroup {field: state.form.channels, dispatch, className: "btn-sm"}
+          ]},
+          R.div {style: css {flex: "0 0 16px"}},
+          R.div {className: "flex-auto", children: [
+            R.div {className: "text-center", children: [R.text "Aspect Ratio"]}, 
+            btnGroup {field: state.form.aspectRatio, dispatch, className: "btn-sm"}
+          ]}
+        ]},
+      onlyWhen isTheaterMode $
+        R.div {className: "flex group-padding", children: [
+          R.div {className: "flex-auto", children: [
+            R.div {className: "text-center", children: [R.text "Screen Diagonal"]}, 
+            R.div {className: "", children: [
+              R.input {
+                type: "number",  
+                minLength: 0,
+                pattern: "[0-9]*",
+                value: show state.form.screenSize.value, 
+                className: "form-control" <> errorClass state.form.screenSize.error,
+                onChange: onClickHandler (_.screenSize.id) identity,
+                style: (css {width: "calc(100% - 24px)"})
+                }
+              ]}
+            ]},
+          R.div {style: css {flex: "0 0 16px"}},
+          R.div {className: "flex-auto", children: [
+            R.div {className: "text-center", children: [R.text "Field of View"]}, 
+            R.input {
+                type: "tel",  
+                minLength: 0,
+                pattern: "[0-9]*",
+                readOnly: true,
+                value: ((toStringWith (fixed 2) stats.fov) <> "°  " <> "[" <> show stats.presence <> "]"), 
+                className: "form-control " <> errorClass state.form.screenSize.error,
+                onChange: onClickHandler (_.screenSize.id) identity,
+                style: (css {flex: "1 1 auto", width: "calc(100% - 24px)"})
+              }
+          ]}
+        ]},
+      R.div_ [
+        R.div {className: "text-center", children: [R.text "Room Dimensions (feet)"]}, 
+        R.div {className: "flex", children: [
+          R.input {
+            type: "number",  
+            value: show state.form.roomWidth.value, 
+            className: "form-control flex-auto " <> errorClass state.form.roomWidth.error,
+            onChange: onClickHandler (_.roomWidth.id) identity,
+            style: (css {width: 80})
+          },
+          R.div {className: "text-center", style: css {flex: "0 0 16px"}, children: [R.text "×"]},
+          R.input {
+            type: "number", 
+            value: show state.form.roomDepth.value, 
+            className: "form-control flex-auto " <> errorClass state.form.roomDepth.error,
+            onChange: onClickHandler (_.roomDepth.id) identity,
+            style: (css {width: 80})}
+          ]}
+      ],
+      R.div {
+        className: "controls group-padding",
+        children: [
+          R.div_ [
+            R.div {className: "group-label text-center", children: [R.text "Layout Controls"]}
+          ],
+          R.div {className: "slider-group", children: [
+          R.div_ [R.text if isTheaterMode then "Distance from TV" else "Distance from phantom center"],
+          slider {
+            min: "0.0", 
+            max: (toStringWith (fixed 2) stats.maximumListeningDistance), 
+            value: (toStringWith (fixed 2) $ stats.distanceFromTv),
+            onChange: handler getValue $ \value -> dispatch $ ChangeListenerSlider value 
+            }
+          ]},
+          -- R.div_ [R.text ("FOV: " <> (toStringWith (fixed 2) stats.fov) <> "°  " <> "[" <> show stats.presence <> "]")],
+          R.div {className: "slider-group", children: [
+            R.div_ [R.text "Speaker distance from rear wall:"],
+            slider {
+              min: "0.1", 
+              max: (toStringWith (fixed 1) stats.maxDisplacement), 
+              value: toStringWith (fixed 2) (stats.frontsDistanceFromWall), 
+              onChange: handler getValue $ \value -> dispatch $ ChangeTranslateSlider value 
+            }
+        ]}
+      ]},
+      R.div_ [
+        R.div {className: "group-label", children: [R.text "Reflections"]}
+      ],
+      R.div {className: "flex", children: [
+        R.div {className: "flex-auto", children: [
+          R.div {className: "text-center", children: [R.text "1st"]}, 
+          R.div {className: "", children: [
+            R.input {
+              value: toStringWith (fixed 2) (firstReflection.reflection.y) <> "\"", 
+              className: "form-control text-center",
+              readOnly: true,
+              style: (css {width: "calc(100% - 24px)"})
+              }
+            ]}
+          ]},
+        R.div {style: css {flex: "0 0 16px"}},
+        R.div {className: "flex-auto", children: [
+          R.div {className: "text-center", children: [R.text "2nd"]}, 
+          R.div {className: "", children: [
+            R.input {
+              value: toStringWith (fixed 2) (secondReflection.reflection.y) <> "\"", 
+              className: "form-control text-center",
+              readOnly: true,
+              style: (css {width: "calc(100% - 24px)"})
+              }
+            ]}
+          ]},
+        R.div {style: css {flex: "0 0 16px"}},
+        R.div {className: "flex-auto", children: [
+          R.div {className: "text-center", children: [R.text "Rear"]}, 
+          R.div {className: "", children: [
+            R.input {
+              value: toStringWith (fixed 2) (thirdReflection.reflection.x) <> "\"", 
+              className: "form-control text-center",
+              readOnly: true,
+              style: (css {width: "calc(100% - 24px)"})
+              }
+            ]}
+          ]}
+      ]},
+      R.div_ [
+        -- R.h4 {style: css {textAlign: "center", children: [R.text "Config"]}},
+        -- R.div_ (state.form.mode.options # map \option -> 
+        --   R.label_ [
+        --     R.input {
+        --       type: "radio", 
+        --       name: "mode", 
+        --       value: option, 
+        --       checked: option == (show state.form.mode.value),
+        --       onClick: onClickHandler (_.mode.id) (const option)
+        --     },
+        --     R.text option
+        --   ])
+        -- ]
+      ],
+    onlyWhen isTheaterMode $
+      R.div_ [
+        -- R.text "Channels: ",
+        -- R.div_ (state.form.channels.options # map \option -> 
+        -- R.label_ [
+        --   R.input {
+        --     type: "radio", 
+        --     name: "channels", 
+        --     value: option, 
+        --     checked: show option == (spy "val:" (show state.form.channels.value)),
+        --     onClick: onClickHandler (_.channels.id) (const option)
+        --   },
+        --   R.text option
+        -- ])
+      ]
+    ]
   ]}
   where 
   stats = Core.homeTheaterStats state
   (SpriteMap sprites) = state.sprites 
   {firstReflection, secondReflection, thirdReflection} = leftReflections $ collectInteractionPoints state.sprites state.geometry
+  onClickHandler :: (FormFields -> FormID) -> (String -> String) -> EffectFn1 SyntheticEvent Unit 
+  onClickHandler field val = 
+    handler getValue $ \e -> 
+      dispatch $ UpdateField (field state.form) $ val e 
+  isTheaterMode = state.form.mode.value == HomeTheater
+
+
 
 
 {-
@@ -114,74 +301,51 @@ homeTheaterForm {dispatch, fields} = do
 
   R.form_ [
     R.div_ [
-      R.div_ (fields.mode.options # map \option -> 
-        R.label_ [
-          R.input {
-            type: "radio", 
-            name: "mode", 
-            value: option, 
-            checked: option == (show fields.mode.value),
-            onClick: onClickHandler (_.mode.id) (const option)
-          },
-          R.text option
-        ]
-      )
+      -- R.div_ (fields.mode.options # map \option -> 
+      --   R.label_ [
+      --     R.input {
+      --       type: "radio", 
+      --       name: "mode", 
+      --       value: option, 
+      --       checked: option == (show fields.mode.value),
+      --       onClick: onClickHandler (_.mode.id) (const option)
+      --     },
+      --     R.text option
+      --   ]
+      -- )
     ],
     onlyWhen isTheaterMode $
-      R.div_ [ 
-        R.label_ [ 
-          R.text "Channels",
-          R.select {
-            onChange: onClickHandler (_.channels.id) identity,
-            children: (makeOption fields.channels) <$> fields.channels.options
-          }
-      ]],
-    R.div_ [
-      R.div {style: (css {display: "inline"}), children: [
-        R.text "Room Dimensions (feet)",
-        R.input {
-          type: "number",  
-          value: show fields.roomWidth.value, 
-          className: errorClass fields.roomWidth.error,
-          onChange: onClickHandler (_.roomWidth.id) identity,
-          style: (css {width: 80})
-        },
-        R.span_ [R.text "×"],
-        R.input {
-          type: "number", 
-          value: show fields.roomDepth.value, 
-          onChange: onClickHandler (_.roomDepth.id) identity,
-          style: (css {width: 80})}
-      ]}
-    ],
-    onlyWhen isTheaterMode $ 
       R.div_ [
-        R.div {style: (css {display: "inline"}), children: [
-          R.text "Screen Size (diagonal): ",
-          R.input {
-            type: "number",  
-            value: show fields.screenSize.value, 
-            className: errorClass fields.screenSize.error,
-            onChange: onClickHandler (_.screenSize.id) identity,
-            style: (css {width: 80})
-          }
-        ]},
-    R.div_ [
-      R.label_ [ 
-        R.text "Aspect Ratio",
-        R.select {
-          onChange: onClickHandler (_.aspectRatio.id) identity,
-          children: (makeOption fields.aspectRatio) <$> fields.aspectRatio.options
-        }
+        -- R.text "Channels: ",
+        -- R.div_ (fields.channels.options # map \option -> 
+        -- R.label_ [
+        --   R.input {
+        --     type: "radio", 
+        --     name: "channels", 
+        --     value: option, 
+        --     checked: show option == (spy "val:" (show fields.channels.value)),
+        --     onClick: onClickHandler (_.channels.id) (const option)
+        --   },
+        --   R.text option
+        -- ])
       ]
-    ]
-  ]
+      -- R.div_ [ 
+      --   R.label_ [ 
+      --     R.text "Channels",
+      --     R.select {
+      --       onChange: onClickHandler (_.channels.id) identity,
+      --       children: (makeOption fields.channels) <$> fields.channels.options
+      --     }
+      -- ]],
+    
+    
   ]
 
 
 
 onlyWhen :: Boolean -> JSX -> JSX 
 onlyWhen pred jsx = if pred then jsx else R.div_ []
+
 
 makeOption :: SelectField -> String -> JSX 
 makeOption props option = do 

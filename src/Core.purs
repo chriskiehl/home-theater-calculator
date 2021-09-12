@@ -18,7 +18,7 @@ import DegreeMath (atan, cos, sin, tan)
 import Math (round)
 import Math as Math
 import ParseInt (parseBase10)
-import Types (AnchorPosition(..), AspectRatio, AudioChannels(..), Degree, FOV, FeetInches, Footprint, FormID(..), Geometry, IsometricPosition, LayoutDescriptor, LayoutStatistics, LocalPosition, Mode(..), Position, PresenceRating(..), Sprite, SpriteID(..), SpriteMap(..), TvSpecs, WorldPosition, ApplicationState, values)
+import Types (AnchorPosition(..), ApplicationState, AspectRatio, AudioChannels(..), Degree, FOV, FeetInches, Footprint, FormID(..), Geometry, IsometricPosition, LayoutDescriptor, LayoutStatistics, LocalPosition, Mode(..), Position, PresenceRating(..), Ratio(..), Sprite, SpriteID(..), SpriteMap(..), TvSpecs, WorldPosition, values)
 import Vector (Matrix2D, Vector, dist, (:**:), (:*:), (:+:), (:-:), rotate)
 import Web.Storage.Event.StorageEvent (newValue)
 
@@ -88,7 +88,7 @@ updateField :: ApplicationState -> FormID -> String -> ApplicationState
 updateField state id value = case id of 
   SimulationMode -> fromMaybe state $ updateMode state <$> (parseMode value)
   Channels -> case parseChannel value of 
-    Just channel -> updateChannels (state{form{channels{value=value}}}) channel
+    Just channel -> updateChannels (state{form{channels{value=channel}}}) channel
     Nothing -> state{form{channels{error=Just "Invalid input"}}}
   Width -> case parseRoomDimension value of 
     Just width -> baselineXPosition $ state{form{roomWidth{value=width}}, geometry{width=(toNumber width)}}
@@ -100,7 +100,7 @@ updateField state id value = case id of
     Just newSize -> state{form{screenSize{value=newSize}}, tvSpecs{diagonalLength=toNumber newSize}}
     Nothing -> state{form{screenSize{error=Just "Must be a valid number"}}}
   AspectRatio -> case parseAspectRatio value of 
-    Just newRatio -> state{form{aspectRatio{value=value}}, tvSpecs{aspectRatio=newRatio}}
+    Just newRatio -> state{form{aspectRatio{value=newRatio}}, tvSpecs{aspectRatio=aspectNumbers newRatio}}
     Nothing -> state{form{aspectRatio{error=Just "Unknown aspect ratio"}}}
   
    
@@ -132,8 +132,8 @@ parseMode raw = case raw of
 
 updateMode :: ApplicationState -> Mode -> ApplicationState 
 updateMode state mode = case mode of 
-  HomeTheater -> state{form{mode{value=mode}, channels{value="5.0"}}, sprites=map _{enabled=true} state.sprites}
-  Studio -> state{form{mode{value=mode}, channels{value="2.0"}}, sprites=disable [TV, LeftRear, RightRear] state.sprites}
+  HomeTheater -> state{form{mode{value=mode}, channels{value=FiveDot}}, sprites=map _{enabled=true} state.sprites}
+  Studio -> state{form{mode{value=mode}, channels{value=TwoDot}}, sprites=disable [TV, LeftRear, RightRear] state.sprites}
 
 
 updateChannels :: ApplicationState -> AudioChannels -> ApplicationState 
@@ -303,7 +303,7 @@ homeTheaterStats state = {fov, distanceFromTv, presence, speakerDistance, fronts
 
 
 computeMaxListeningPostion :: ApplicationState -> Number 
-computeMaxListeningPostion {geometry, form} = if form.channels.value == "5.0" then radius50 * cos 30.0 else radius20 
+computeMaxListeningPostion {geometry, form} = if form.channels.value == FiveDot then radius50 * cos 30.0 else radius20 
   where 
   width = (geometry.width / 2.0) - 1.0
   radius50 = (width / (cos 20.0)) 
@@ -311,10 +311,12 @@ computeMaxListeningPostion {geometry, form} = if form.channels.value == "5.0" th
 
 
 computeMaxDisplacement :: ApplicationState -> Number 
-computeMaxDisplacement {geometry, form, sprites, tvSpecs} = 
-  if form.channels.value == "5.0" 
-    then geometry.depth - radius50 - distanceFromTv - 1.5
-    else geometry.depth - distanceFromTv - 2.0
+computeMaxDisplacement {geometry, form, sprites, tvSpecs} = case form.channels.value of 
+  FiveDot -> geometry.depth - radius50 - distanceFromTv - 1.5
+  TwoDot -> geometry.depth - distanceFromTv - 2.0
+  -- if form.channels.value == FiveDot 
+  --   then 
+  --   else 
   where 
   distanceFromTv = (chairTvDistance sprites tvSpecs) 
   radius = distanceFromTv / (cos 30.0)
@@ -457,11 +459,17 @@ parseChannel s = case s of
   _ -> Nothing 
 
 
-parseAspectRatio :: String -> Maybe AspectRatio
+parseAspectRatio :: String -> Maybe Ratio
 parseAspectRatio ratio = case ratio of 
-  "16:9" -> Just {width: 16.0, height: 9.0}
-  "2.4:1" -> Just {width: 2.4, height: 1.0}
+  "16:9" -> Just SixteenByNine
+  "2.4:1" -> Just TwoPointFourByOne
   _ -> Nothing
+
+aspectNumbers :: Ratio -> AspectRatio
+aspectNumbers ratio = case ratio of 
+  SixteenByNine -> {width: 16.0, height: 9.0}
+  TwoPointFourByOne -> {width: 2.4, height: 1.0}
+
 
 
 betweenZeroAndTwoHundred :: Int -> Maybe Int 
@@ -469,7 +477,7 @@ betweenZeroAndTwoHundred x = if x > 0 && x < 200 then Just x else Nothing
 
 
 parseRoomDimension :: String -> Maybe Int 
-parseRoomDimension = parseBase10 >=> betweenZeroAndTwoHundred
+parseRoomDimension = parseBase10 -- >=> betweenZeroAndTwoHundred
 
 
 updateSprites :: (Sprite -> Sprite) -> ApplicationState -> ApplicationState

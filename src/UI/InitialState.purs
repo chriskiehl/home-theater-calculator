@@ -7,7 +7,7 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Prelude ((/))
 import Sprites as Sprites
-import Types (AnchorPosition(..), ApplicationState, FormID(..), Geometry, Mode(..), SpriteID(..), SpriteMap(..), TvSpecs)
+import Types (AnchorPosition(..), ApplicationState, AudioChannels(..), FormID(..), Geometry, Mode(..), Ratio(..), SpriteID(..), SpriteMap(..), TvSpecs)
 
 initialWidth = 15
 initialDepth = 18
@@ -42,11 +42,11 @@ initialState = {
   geometry: initialGeometry,
   tvSpecs: defaultSpecs,
   form: {
-    mode: {id: SimulationMode, value: HomeTheater, error: Nothing, options: ["Home Theater", "Studio"]},
+    mode: {id: SimulationMode, value: HomeTheater, error: Nothing, options: [HomeTheater, Studio]},
     roomWidth: {id: Width, value: initialWidth, error: Nothing},
     roomDepth: {id: Depth, value: initialDepth, error: Nothing},
-    channels: {id: Channels, value: "5.0", error: Nothing, options: ["2.0", "5.0"]},
+    channels: {id: Channels, value: FiveDot, error: Nothing, options: [TwoDot, FiveDot]},
     screenSize: {id: ScreenSize, value: initialScreenSize, error: Nothing},
-    aspectRatio: {id: AspectRatio, value: "16:9", error: Nothing, options: ["16:9", "2.4:1"]}
+    aspectRatio: {id: AspectRatio, value: SixteenByNine, error: Nothing, options: [SixteenByNine, TwoPointFourByOne]}
   }
 }

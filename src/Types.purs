@@ -5,17 +5,20 @@ import Prelude
 import Data.Array as Array
 import Data.Foldable (class Foldable)
 import Data.Functor.App (App)
-import Data.List as List
 import Data.List (List(..))
+import Data.List as List
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
+import Effect (Effect)
 import Record (get)
 import Record.Extra (mapRecord)
 import Type.Proxy (Proxy(..))
 import Vector (Vector, Vector3)
 import Web.HTML.HTMLElement (DOMRect)
 
+
+type DispatchFn = (Action -> Effect Unit)
 
 type Degree = Number 
 
@@ -24,7 +27,10 @@ type Degree = Number
 type Position = Vector 
 
 -- | A position with its cartesian origin set to 
--- | the top-left corner of the canvas
+-- | the top-left corner of the canvas. These coordinates 
+-- | carry no semantic meaning and are purely 'mechanical'
+-- | distances from origin. They're used only for representing
+-- | raw mouse events
 type LocalPosition = Position 
 
 -- | A position where its origin (0, 0) is set to the top-center 
@@ -120,7 +126,7 @@ type FormField a r = (
 type TextField = Record (FormField String ()) 
 type NumericField = Record (FormField Int ()) 
 type SelectField = Record (FormField String (options :: Array String))
-type TypedSelectField a = Record (FormField a (options :: Array String))
+type TypedSelectField a = Record (FormField a (options :: Array a))
 
 type Geometry = {
   width :: Number,
@@ -212,6 +218,15 @@ type AspectRatio = {
   height :: Number
 }
 
+data Ratio = SixteenByNine | TwoPointFourByOne 
+derive instance eqRatio :: Eq Ratio  
+derive instance ordRatio :: Ord Ratio
+
+instance showRatio :: Show Ratio where 
+  show SixteenByNine = "16:9"
+  show TwoPointFourByOne = "2.4:1" 
+
+
 type Images = {
   normal :: DataUrl, 
   hover :: DataUrl 
@@ -221,9 +236,9 @@ type FormFields = {
   mode :: TypedSelectField Mode,
   roomWidth :: NumericField, 
   roomDepth :: NumericField, 
-  channels :: SelectField, 
+  channels :: TypedSelectField AudioChannels, 
   screenSize :: NumericField, 
-  aspectRatio :: SelectField 
+  aspectRatio :: TypedSelectField Ratio 
 }
 
 type TvSpecs = {
@@ -299,6 +314,9 @@ data FormID = Channels | Width | Depth | ScreenSize | AspectRatio | SimulationMo
 
 
 data AudioChannels = TwoDot | FiveDot 
+
+derive instance eqAudioChannels :: Eq AudioChannels  
+derive instance ordAudioChannels :: Ord AudioChannels  
 
 
 instance showAudioChannels :: Show AudioChannels where 

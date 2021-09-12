@@ -36,10 +36,11 @@ render ctx state = do
   
   tilebackground ctx 
   renderFloor ctx state 
-  -- renderWalls ctx state 
+  renderWalls ctx state 
   drawCenterLine ctx state 
   -- drawLines ctx state 
   -- drawStudioLines ctx state 
+  drawAllReflections ctx state
   renderSprites ctx state
   -- highlightHitboxes ctx state
   for_ (values state.sprites) (outlineFootprint ctx)
@@ -47,7 +48,7 @@ render ctx state = do
   
   -- drawFirstReflections ctx state 
   -- drawRearReflections ctx state 
-  drawAllReflections ctx state
+  
 
   let uu = C.toIso {x: 0.0, y: 0.0} state.worldOrigin state.zoomMultiplier
 
@@ -67,11 +68,11 @@ render ctx state = do
       jjj = C.toIso {x: 0.0, y: 0.0} state.worldOrigin   
   -- Cavnas.fillRect ctx {x: ggg.x, y: ggg.y, width: 20.0, height: 20.0}  
   
-  let sss = Core.anchorAdjusted (Sprites.twoStackSprite LeftRear){anchor=CenterEast, pos={x: 0.0, y: 0.0}}  
-  drawSprite ctx sss state.worldOrigin state.zoomMultiplier  
+  -- let sss = Core.anchorAdjusted (Sprites.twoStackSprite LeftRear){anchor=CenterEast, pos={x: 0.0, y: 0.0}}  
+  -- drawSprite ctx sss state.worldOrigin state.zoomMultiplier  
   
-  Cavnas.setFillStyle ctx "green"  
-  Cavnas.fillRect ctx {x: 347.0, y: 238.0, width: 10.0, height: 10.0}  
+  -- Cavnas.setFillStyle ctx "green"  
+  -- Cavnas.fillRect ctx {x: 347.0, y: 238.0, width: 10.0, height: 10.0}  
     
   let (SpriteMap sm) = state.sprites  
     
@@ -92,32 +93,27 @@ render ctx state = do
   let r30' = toIso r30 state.worldOrigin state.zoomMultiplier 
   let cc = toIso (sm.chair.pos :-: {x: 0.0, y: chairTvInterDistance}) state.worldOrigin state.zoomMultiplier 
 
-  Cavnas.fillText ctx ("distance: " <> show distance) 100.0 100.0
-  Cavnas.fillText ctx ("max dist: " <> show maxDistance) 100.0 130.0
-  Cavnas.fillText ctx ("inter chair-tv: " <> show chairTvInterDistance) 100.0 160.0
-  -- Cavnas.fillText ctx (show $ stats.distanceFromTv / 16.0) 100.0 220.0
-  Cavnas.fillText ctx (show $ stats.maxDisplacement) 100.0 220.0
+  -- Cavnas.fillText ctx ("distance: " <> show distance) 100.0 100.0
+  -- Cavnas.fillText ctx ("max dist: " <> show maxDistance) 100.0 130.0
+  -- Cavnas.fillText ctx ("inter chair-tv: " <> show chairTvInterDistance) 100.0 160.0
+  -- -- Cavnas.fillText ctx (show $ stats.distanceFromTv / 16.0) 100.0 220.0
+  -- Cavnas.fillText ctx (show $ stats.maxDisplacement) 100.0 220.0
 
   Canvas.beginPath ctx 
-  Canvas.moveTo ctx pos.x pos.y 
-  Cavnas.setLineWidth ctx 1.0
-  Cavnas.setStrokeStyle ctx "black"
-  Cavnas.lineTo ctx oneTen'.x oneTen'.y
-  Canvas.closePath ctx 
-  Canvas.stroke ctx
-
-  Canvas.moveTo ctx pos.x pos.y 
-  Cavnas.setLineWidth ctx 1.0
-  Cavnas.setStrokeStyle ctx "black"
-  Cavnas.lineTo ctx r30'.x r30'.y
-  Canvas.closePath ctx 
-  Canvas.stroke ctx
-  
   -- Canvas.moveTo ctx pos.x pos.y 
-  -- Cavnas.lineTo ctx cc.x cc.y
+  -- Cavnas.setLineWidth ctx 1.0
+  -- Cavnas.setStrokeStyle ctx "black"
+  -- Cavnas.lineTo ctx oneTen'.x oneTen'.y
   -- Canvas.closePath ctx 
   -- Canvas.stroke ctx
 
+  -- Canvas.moveTo ctx pos.x pos.y 
+  -- Cavnas.setLineWidth ctx 1.0
+  -- Cavnas.setStrokeStyle ctx "black"
+  -- Cavnas.lineTo ctx r30'.x r30'.y
+  -- Canvas.closePath ctx 
+  -- Canvas.stroke ctx
+  
   where 
 
   stats = Core.homeTheaterStats state

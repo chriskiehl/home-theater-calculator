@@ -32,7 +32,7 @@ import Renderer as CanvasRenderer
 import SimulationCanvas (mainCanvas)
 import Sprites as Sprites
 import Type.Proxy (Proxy(..))
-import Types (Action(..), AnchorPosition(..), ApplicationState, AudioChannels(..), FormField, FormID(..), Geometry, NumericField, SelectField, SpriteID(..), TextField, TvSpecs, AspectRatio)
+import Types (Action(..), AnchorPosition(..), ApplicationState, AspectRatio, AudioChannels(..), FormField, FormID(..), Geometry, Mode(..), NumericField, SelectField, SpriteID(..), TextField, TvSpecs)
 import Unsafe.Coerce (unsafeCoerce)
 
 
@@ -93,7 +93,7 @@ application = do
     pure $ fragment [
       R.div {children: [
         R.div_ [
-          R.h1_ [R.text "Home Theater Calculator"],
+          R.h1_ [R.text if state.form.mode.value == HomeTheater then "Home Theater Calculator" else "Audio Studio Calculator"],
           mainCanvas {dispatch},
           readout state dispatch,
           controls {dispatch, fields: state.form}
