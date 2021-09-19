@@ -15,9 +15,11 @@ import Data.Number.Format (fixed, toStringWith)
 import Data.Tuple (Tuple(..))
 import Debug (spy)
 import DegreeMath (atan, cos, sin, tan)
+import Graphcs (couch, couchHighlight, listener, listenerHighlight, tv16x9, tv16x9Highlight, tv24x1, tv24x1Highlight)
 import Math (round)
 import Math as Math
 import ParseInt (parseBase10)
+import Sprites (couchGuy, listenerGuy, tvSprite)
 import Types (AnchorPosition(..), ApplicationState, AspectRatio, AudioChannels(..), Degree, FOV, FeetInches, Footprint, FormID(..), Geometry, IsometricPosition, LayoutDescriptor, LayoutStatistics, LocalPosition, Mode(..), Position, PresenceRating(..), Ratio(..), Sprite, SpriteID(..), SpriteMap(..), TvSpecs, WorldPosition, values)
 import Vector (Matrix2D, Vector, dist, (:**:), (:*:), (:+:), (:-:), rotate)
 import Web.Storage.Event.StorageEvent (newValue)
@@ -32,7 +34,7 @@ handleMouseDown state cursorPos = state{sprites=updateWhen inBoundsAndEnabled (s
 
 
 handleMouseUp :: ApplicationState -> ApplicationState 
-handleMouseUp state = state{sprites=map (\s -> s{isBeingDragged=false, image=s.images.normal}) state.sprites} 
+handleMouseUp state = state{sprites=map (\s -> s{isBeingDragged=false, image=s.images.normal, isBeingHovered=false}) state.sprites} 
 
 
 handleMouseMove :: ApplicationState -> LocalPosition -> ApplicationState 
@@ -75,15 +77,11 @@ handleHover cursorPos state = state{sprites=map (setHovering cursorPos) state.sp
   where 
   setHovering :: LocalPosition -> Sprite -> Sprite 
   setHovering pos s = if (inBounds (localToIso pos state.worldOrigin state.zoomMultiplier) s) || s.isBeingDragged
-                       then s{image=s.images.hover} 
-                       else s{image=s.images.normal} 
+                       then s{image=s.images.hover, isBeingHovered=true} 
+                       else s{image=s.images.normal, isBeingHovered=false} 
 
 
--- I can't figure out how to program generically against Records 
--- in the same way you would against plain Javascript Objects / maps. 
--- I similarly haven't been able for figure out how to dynamically 
--- access a record by key (get Proxy doesn't seem to allow dynmic varables). 
--- Thus: the repeated boilerplate below. 
+-- TODO: learn how lenses work 
 updateField :: ApplicationState -> FormID -> String -> ApplicationState
 updateField state id value = case id of 
   SimulationMode -> fromMaybe state $ updateMode state <$> (parseMode value)
@@ -100,7 +98,7 @@ updateField state id value = case id of
     Just newSize -> state{form{screenSize{value=newSize}}, tvSpecs{diagonalLength=toNumber newSize}}
     Nothing -> state{form{screenSize{error=Just "Must be a valid number"}}}
   AspectRatio -> case parseAspectRatio value of 
-    Just newRatio -> state{form{aspectRatio{value=newRatio}}, tvSpecs{aspectRatio=aspectNumbers newRatio}}
+    Just newRatio -> setTvSprite newRatio $ state{form{aspectRatio{value=newRatio}}, tvSpecs{aspectRatio=aspectNumbers newRatio}}
     Nothing -> state{form{aspectRatio{error=Just "Unknown aspect ratio"}}}
   
    
@@ -132,9 +130,32 @@ parseMode raw = case raw of
 
 updateMode :: ApplicationState -> Mode -> ApplicationState 
 updateMode state mode = case mode of 
-  HomeTheater -> state{form{mode{value=mode}, channels{value=FiveDot}}, sprites=map _{enabled=true} state.sprites}
-  Studio -> state{form{mode{value=mode}, channels{value=TwoDot}}, sprites=disable [TV, LeftRear, RightRear] state.sprites}
+  HomeTheater -> setListenerSprite mode $ state{form{mode{value=mode}, channels{value=FiveDot}}, sprites=map _{enabled=true} state.sprites}
+  Studio -> setListenerSprite mode $ state{form{mode{value=mode}, channels{value=TwoDot}}, sprites=disable [TV, LeftRear, RightRear] state.sprites}
 
+
+enableAllSprites :: ApplicationState -> ApplicationState
+enableAllSprites state = state{sprites=map _{enabled=true} state.sprites}
+
+setListenerSprite :: Mode -> ApplicationState -> ApplicationState
+setListenerSprite mode state = case mode of 
+  HomeTheater -> state{sprites=SpriteMap theaterSprites}
+  Studio -> state{sprites=SpriteMap studioSprites}
+  where 
+  (SpriteMap sm) = state.sprites
+  chair = sm.chair
+  theaterSprites = sm{chair=(couchGuy Chair){pos=chair.pos}} 
+  studioSprites = sm{chair=(listenerGuy Chair){pos=chair.pos}}
+
+setTvSprite :: Ratio -> ApplicationState -> ApplicationState
+setTvSprite ratio state = case ratio of 
+  SixteenByNine -> state{sprites=SpriteMap standardDef}
+  TwoPointFourByOne -> state{sprites=SpriteMap ultraWide} 
+  where 
+  (SpriteMap sm) = state.sprites
+  tv = sm.tv
+  standardDef = sm{tv=(tvSprite TV){pos=tv.pos, image=tv16x9, images={normal: tv16x9, hover: tv16x9Highlight}}} 
+  ultraWide = sm{tv=(tvSprite TV){pos=tv.pos, image=tv24x1, images={normal: tv24x1, hover: tv24x1Highlight}}}
 
 updateChannels :: ApplicationState -> AudioChannels -> ApplicationState 
 updateChannels state channel = case (spy "channel?" channel) of 
@@ -181,14 +202,10 @@ areSpeakersColliding (SpriteMap sprites) = colliding
 -- | this accounts for the shortening which takes place during the ISO transform
 -- | and allows us to check against arbitrary TV sizes rather than fixed sprite sizes
 isCollidingWithTv :: TvSpecs -> SpriteMap Sprite -> Boolean 
-isCollidingWithTv tv (SpriteMap sprites) = sprites.tv.enabled && leftFront.bottomRight.x >= tvBottomLeft
+isCollidingWithTv specs (SpriteMap sprites) = sprites.tv.enabled && leftFront.bottomRight.x >= bottomLeft.x
   where 
-  {diagonalLength, aspectRatio} = tv
+  {bottomLeft} = tvFootprint specs sprites.tv 
   leftFront = footprint sprites.leftFront 
-  diagonalDegrees = atan (aspectRatio.height / aspectRatio.width )
-  physicalScreenWidth = (cos diagonalDegrees) * diagonalLength
-  isoWidth = (cos 30.0) * physicalScreenWidth / tileWidth
-  tvBottomLeft = sprites.tv.pos.x - (isoWidth / 2.0)
 
 
 -- Checks if the supplied point falls within the boundaries of the sprite. 
@@ -245,7 +262,7 @@ isWithinSprite pos fullSprite = (pos.x > sprite.x
   upperIntercept =  sprite.y - (sprite.x + width)
 
 
-
+-- | Gives the bounding rect of the supplied sprite. 
 footprint :: Sprite -> Footprint
 footprint s = {topLeft, topRight, bottomLeft, bottomRight}   
   where 
@@ -258,6 +275,31 @@ footprint s = {topLeft, topRight, bottomLeft, bottomRight}
   topLeft = bottomLeft :+: {x: 0.0, y: -s.size.y}
   topRight = topLeft :+: {x: s.size.x, y: 0.0}
   bottomRight = bottomLeft :+: {x: s.size.x, y: 0.0}
+
+
+-- | Calulates the physical footprint of the TV based on the user's 
+-- | selected screen diagonal size. 
+-- | This is more involved than all the other sprites because the TV's size 
+-- | and aspect ratio can be modified by the user. All other sprites are 
+-- | fixed. 
+-- | Note: Unlike other sprites, the anchor position of the TV doesn't vary 
+-- | thus it not being taken into account here. 
+tvFootprint :: TvSpecs -> Sprite -> Footprint 
+tvFootprint {diagonalLength, aspectRatio} tv = {bottomLeft, bottomRight, topLeft, topRight}
+  where 
+  diagonalDegrees = atan (aspectRatio.height / aspectRatio.width )
+  horizontalWidth = (cos diagonalDegrees) * diagonalLength
+  -- here 'isoWidth' is what the horizontal length is after the 45deg
+  -- rotation which takes place during the ISO transform. This rotation 
+  -- shrinks the cartesian width, thus to draw it correctly in isometric
+  -- we have to account for that shrinkage
+  isoWidth = ((cos 30.0) * horizontalWidth)
+  halfIsoWidth = (isoWidth / 2.0) / 16.0
+  bottomLeft = tv.pos :-: {x: halfIsoWidth, y: 0.0}
+  bottomRight = tv.pos :+: {x: halfIsoWidth, y: 0.0}
+  topLeft = bottomLeft :-: {x: 0.0, y: 1.0}
+  topRight = bottomRight :-: {x: 0.0, y: 1.0}
+
 
 
 chairTvDistance :: SpriteMap Sprite -> TvSpecs -> Number

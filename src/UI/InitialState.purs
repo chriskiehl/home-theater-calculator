@@ -5,13 +5,14 @@ import Data.Int (toNumber)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
+import Graphcs (leftRear, listener, rightRear)
 import Prelude ((/))
 import Sprites as Sprites
 import Types (AnchorPosition(..), ApplicationState, AudioChannels(..), FormID(..), Geometry, Mode(..), Ratio(..), SpriteID(..), SpriteMap(..), TvSpecs)
 
 initialWidth = 15
 initialDepth = 18
-initialScreenSize = 50
+initialScreenSize = 60
 
 initialGeometry :: Geometry
 initialGeometry = {
@@ -32,12 +33,12 @@ initialState = {
   worldOrigin: {x: 448.0, y: 100.0},
   zoomMultiplier: 2.0,
   sprites: SpriteMap {
-    chair: (Sprites.blockSprite Chair){pos={x: 0.0, y: 0.0}},
-    leftFront: Sprites.twoStackSprite LeftFront,
-    rightFront: Sprites.twoStackSprite RightFront,
-    tv: (Sprites.threeBlockTwoZSprite TV){pos={x: 3.0/2.0, y: 0.0}},
-    leftRear: (Sprites.twoStackSprite LeftRear){anchor=CenterEast},
-    rightRear: (Sprites.twoStackSprite RightRear){anchor=CenterWest}
+    chair: (Sprites.couchGuy Chair){pos={x: 0.0, y: 0.0}, anchor=CenterNorth, image=listener},
+    leftFront: Sprites.frontSpeaker LeftFront,
+    rightFront: Sprites.frontSpeaker RightFront,
+    tv: (Sprites.tvSprite TV){pos={x: 3.0/2.0, y: 0.0}},
+    leftRear: (Sprites.leftRearSpeaker LeftRear),
+    rightRear: (Sprites.rightRearSpeaker RightRear)
   },
   geometry: initialGeometry,
   tvSpecs: defaultSpecs,

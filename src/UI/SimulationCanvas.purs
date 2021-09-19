@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Int (toNumber)
 import Effect (Effect)
+import Graphcs (magnifyingGlass)
 import Graphics.Canvas (CanvasElement)
 import React.Basic (JSX)
 import React.Basic.DOM (css)
@@ -33,7 +34,14 @@ mainCanvas {dispatch} =
         onMouseUp: onMouseDown MouseUp,
         onMouseMove: onMouseDown MouseMove
       },
-      R.button {id: "zoom-button", onClick: handler identity \_ -> dispatch ToggleZoom}
+      R.button {
+        type: "button", 
+        id: "zoom-button", 
+        className: "btn btn-sm", 
+        onClick: handler identity \_ -> dispatch ToggleZoom,
+        children: [
+          R.img {src: magnifyingGlass}
+        ]}
     ]}
   where 
   onMouseDown eventType = handler canvasPosition \event -> do 

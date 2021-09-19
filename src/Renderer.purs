@@ -19,14 +19,14 @@ import Debug (spy)
 import Debugging (drawAllReflections, highlightHitboxes, outlineFootprint, traceActualTvSize)
 import DegreeMath (cos)
 import Effect (Effect)
-import Graphcs (block, blockChunkie)
+import Graphcs (block, blockChunkie, bottomWallRev, wallCapLeft, wallCapRight)
 import Graphics.Canvas (Context2D)
 import Graphics.Canvas as Canvas
 import Graphics.Canvas as Cavnas
 import Math ((%))
 import Reflections (collectInteractionPoints, leftReflections)
 import Sprites as Sprites
-import Types (AnchorPosition(..), ApplicationState, Degree, Position, Sprite, SpriteID(..), SpriteMap(..), values, valuesL)
+import Types (AnchorPosition(..), ApplicationState, Degree, Footprint, Position, Sprite, SpriteID(..), SpriteMap(..), values, valuesL)
 import Vector (Matrix2D, Vector, dist, rotate, (:**:), (:*:), (:+:), (:-:))
 
 render :: Context2D -> ApplicationState -> Effect Unit
@@ -44,7 +44,6 @@ render ctx state = do
   renderSprites ctx state
   -- highlightHitboxes ctx state
   for_ (values state.sprites) (outlineFootprint ctx)
-  -- traceActualTvSize ctx state 
   
   -- drawFirstReflections ctx state 
   -- drawRearReflections ctx state 
@@ -55,10 +54,10 @@ render ctx state = do
   Canvas.setFont ctx "30px Arial"
   let ggg = ((tileWidth :*: {x: 0.0, y: 0.0}) :**: isoTransform) :+: state.worldOrigin
   let con = C.localToIso {x: 0.0, y: 0.0} state.worldOrigin
-  Canvas.fillText ctx ("local: (" <> (show state.cursor.localPosition.x) <> ", " <> (show state.cursor.localPosition.y) <> ")")  600.0 30.0
-  Canvas.fillText ctx ("iso: (" <> (toStringWith (fixed 2) state.cursor.isoPosition.x) <> ", " <> (toStringWith (fixed 2) state.cursor.isoPosition.y) <> ")")  600.0 60.0
-  Canvas.fillText ctx ("iso: (" <> (show ggg.x) <> ", " <> (show ggg.y) <> ")")  600.0 90.0
-  Canvas.fillText ctx ("round trip: " <> (show uu))  500.0 120.0
+  -- Canvas.fillText ctx ("local: (" <> (show state.cursor.localPosition.x) <> ", " <> (show state.cursor.localPosition.y) <> ")")  600.0 30.0
+  -- Canvas.fillText ctx ("iso: (" <> (toStringWith (fixed 2) state.cursor.isoPosition.x) <> ", " <> (toStringWith (fixed 2) state.cursor.isoPosition.y) <> ")")  600.0 60.0
+  -- Canvas.fillText ctx ("iso: (" <> (show ggg.x) <> ", " <> (show ggg.y) <> ")")  600.0 90.0
+  -- Canvas.fillText ctx ("round trip: " <> (show uu))  500.0 120.0
 
   
 
@@ -68,7 +67,7 @@ render ctx state = do
       jjj = C.toIso {x: 0.0, y: 0.0} state.worldOrigin   
   -- Cavnas.fillRect ctx {x: ggg.x, y: ggg.y, width: 20.0, height: 20.0}  
   
-  -- let sss = Core.anchorAdjusted (Sprites.twoStackSprite LeftRear){anchor=CenterEast, pos={x: 0.0, y: 0.0}}  
+  -- let sss = Core.anchorAdjusted (Sprites.bottomWallSprite AdHoc){anchor=LogicalOrigin, pos={x: 0.0, y: 0.0}}  
   -- drawSprite ctx sss state.worldOrigin state.zoomMultiplier  
   
   -- Cavnas.setFillStyle ctx "green"  
@@ -148,7 +147,9 @@ renderSprites ctx state = do
   for_ (sortBy (comparing (_.pos.x)) (valuesL state.sprites)) \s -> do
     let sprt = Core.anchorAdjusted s
     if sprt.enabled 
-      then drawSprite ctx sprt state.worldOrigin state.zoomMultiplier
+      then do 
+        renderFootprint ctx s state
+        drawSprite ctx sprt state.worldOrigin state.zoomMultiplier
       else pure unit 
 
 
@@ -172,10 +173,12 @@ renderFloor ctx {geometry, worldOrigin, zoomMultiplier} = do
   Canvas.setLineWidth ctx 1.0
   let width = guaranteedInt geometry.width
   let depth = guaranteedInt geometry.depth
-  for_ (Array.range 0 (width - 1)) \x -> 
-    for_ (Array.range 0 (depth - 1)) \y -> do 
+  for_ (Array.range (-1) (width - 1)) \x -> 
+    for_ (Array.range (-1) (depth - 1)) \y -> do 
       Canvas.setStrokeStyle ctx "black"
       strokeIso3 ctx (toNumber x) (toNumber y) worldOrigin zoomMultiplier
+      let sss = Core.anchorAdjusted (Sprites.floorSprite AdHoc){anchor=LogicalOrigin, pos={x: toNumber (x + 1), y: toNumber (y + 1)}}  
+      drawSprite ctx sss worldOrigin zoomMultiplier
 
 
 -- | TODO: refactor me once graphics are complete and larger sprites 
@@ -184,14 +187,16 @@ renderWalls :: Context2D -> ApplicationState -> Effect Unit
 renderWalls ctx {geometry, worldOrigin, zoomMultiplier} = do 
   let width = guaranteedInt geometry.width
       depth = guaranteedInt geometry.depth
-      s = Core.anchorOrigin (Sprites.blockSprite AdHoc){anchor=LogicalOrigin, pos={x: 0.0, y: 0.0}, image=block}
-  for_ [0, -1, -2, -3] \yOffset ->
-    for_ (Array.range (-1) (depth - 1)) \y -> do 
-      drawSprite ctx (Core.anchorOrigin s{pos={x: toNumber ((-1) + yOffset), y: (toNumber (y + yOffset))}}) worldOrigin zoomMultiplier
+      sss = Core.anchorAdjusted (Sprites.bottomWallSprite AdHoc){anchor=LogicalOrigin, pos={x: 0.0, y: 0.0}}  
+      sss2 = Core.anchorAdjusted (Sprites.bottomWallSprite AdHoc){anchor=LogicalOrigin, pos={x: 0.0, y: 0.0}, image=wallCapRight}
+      rightWall = Core.anchorAdjusted (Sprites.bottomWallSprite AdHoc){anchor=LogicalOrigin, pos={x: 0.0, y: 0.0}, image=bottomWallRev}  
+  for_ (Array.range (-1) (depth - 1)) \y -> do 
+    if y == -1 
+      then drawSprite ctx (Core.anchorOrigin sss{pos={x: toNumber (-1), y: (toNumber (y ))}}) worldOrigin zoomMultiplier
+      else drawSprite ctx (Core.anchorOrigin sss2{pos={x: toNumber (-1), y: (toNumber (y ))}}) worldOrigin zoomMultiplier
   
-  for_ [0, -1, -2, -3] \yOffset ->
-    for_ (Array.range 0 (width - 1)) \x -> do 
-      drawSprite ctx (Core.anchorOrigin s{pos={x: (toNumber (x + yOffset)), y: toNumber ((-1) + yOffset)}}) worldOrigin zoomMultiplier
+  for_ (Array.range 0 (width - 1)) \x -> do 
+    drawSprite ctx (Core.anchorOrigin rightWall{pos={x: (toNumber (x)), y: toNumber ((-1))}}) worldOrigin zoomMultiplier
 
 
 drawLines :: Context2D -> ApplicationState -> Effect Unit 
@@ -263,6 +268,7 @@ drawSprite ctx sprite worldOrigin zoomMultiplier = do
   _ <- Canvas.drawImageScale ctx (fromDataSource sprite.image) pos.x pos.y (width * zoomMultiplier) (height * zoomMultiplier)
   pure unit 
   where 
+  -- TODO: explain this scaling math... 
   tilesize = zoomMultiplier * tileWidth
   pos = ((tilesize :*: (sprite.pos)) :**: isoTransform) :+: worldOrigin
   width  = 16.0 + (sprite.size.x * 16.0)
@@ -295,3 +301,33 @@ strokeIso3 ctx x y worldOrigin zoomLevel = do
 -- | back to an integer for purposes of looping / comparison
 guaranteedInt :: Number -> Int 
 guaranteedInt x = fromMaybe 0 (fromNumber x)
+
+
+isoFootprint :: Footprint -> Position -> Number -> Footprint 
+isoFootprint {topLeft, topRight, bottomLeft, bottomRight} worldOrigin zoomMultiplier = {
+  bottomLeft: toIso (bottomLeft) worldOrigin  zoomMultiplier,
+  bottomRight: toIso (bottomRight) worldOrigin  zoomMultiplier,
+  topRight: toIso (topRight) worldOrigin  zoomMultiplier,
+  topLeft: toIso (topLeft) worldOrigin  zoomMultiplier 
+}
+
+
+renderFootprint :: Context2D -> Sprite -> ApplicationState ->  Effect Unit 
+renderFootprint ctx sprite {worldOrigin, zoomMultiplier, tvSpecs} = do 
+  let {topLeft, topRight, bottomLeft, bottomRight} = if sprite.id == TV 
+    then isoFootprint (Core.tvFootprint tvSpecs sprite) worldOrigin zoomMultiplier
+    else isoFootprint (Core.footprint sprite) worldOrigin zoomMultiplier
+  Canvas.beginPath ctx 
+  Canvas.moveTo ctx bottomLeft.x bottomLeft.y 
+  Canvas.lineTo ctx bottomRight.x bottomRight.y 
+  Canvas.lineTo ctx topRight.x topRight.y 
+  Canvas.lineTo ctx topLeft.x topLeft.y 
+  Canvas.lineTo ctx bottomLeft.x bottomLeft.y 
+  Canvas.setFillStyle ctx if sprite.isBeingHovered then "rgba(255, 255, 255, 1.0)" else "rgba(255, 255, 255, 0.2)"
+  Canvas.setStrokeStyle ctx "black"
+  Cavnas.setLineDash ctx [3.0]
+  Cavnas.setLineWidth ctx 1.0
+  Cavnas.fill ctx 
+  Canvas.stroke ctx 
+  Cavnas.closePath ctx
+  Cavnas.setLineDash ctx [0.0]

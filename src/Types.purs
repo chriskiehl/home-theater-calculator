@@ -208,6 +208,7 @@ type Sprite = {
   image :: DataUrl, 
   images :: Images, 
   isBeingDragged :: Boolean,
+  isBeingHovered :: Boolean,
   size :: Vector3,
   anchor :: AnchorPosition,
   enabled :: Boolean

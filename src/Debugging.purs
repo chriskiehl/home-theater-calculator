@@ -1,6 +1,7 @@
 -- | Various tooling and utils for debugging 
 -- | sprite intereactions and hitboxes and other 
--- | random dev stuff 
+-- | random dev stuff. Just a dumping ground of ad-hoc 
+-- | one-off, as-needed throw-away tooling. 
 module Debugging where
 
 import Prelude
@@ -16,6 +17,7 @@ import DegreeMath (atan, cos)
 import Effect (Effect)
 import Graphics.Canvas (Context2D)
 import Graphics.Canvas as Canvas
+import Graphics.Canvas as Cavnas
 import Reflections (collectInteractionPoints, leftReflections, rightReflections)
 import Types (ApplicationState, PrimaryReflections, Sprite, SpriteID(..), SpriteMap(..), WallInteractionPoints, values, valuesL)
 import Vector ((:**:), (:*:), (:+:), (:-:))
@@ -65,30 +67,6 @@ anyOfEm x y sprites = any (Core.inBounds {x, y}) (fromFoldable sprites)
 
 
 
-traceActualTvSize :: Context2D -> ApplicationState -> Effect Unit 
-traceActualTvSize ctx state = do 
-  let (SpriteMap sprites) = state.sprites
-  let {diagonalLength, aspectRatio} = state.tvSpecs 
-  let leftFront = Core.footprint sprites.leftFront
-  let tv = sprites.tv
-  let diagonalDegrees = atan (aspectRatio.height / aspectRatio.width )
-  let screenWidth = (cos diagonalDegrees) * diagonalLength
-  let isoWidth = ((cos 30.0) * screenWidth )
-  let halfIsoWidth = (isoWidth / 2.0) / 16.0
-  let pos = toIso (tv.pos) state.worldOrigin  state.zoomMultiplier
-  let pos2 = toIso (tv.pos :-: {x: halfIsoWidth, y: 0.0}) state.worldOrigin  state.zoomMultiplier
-  Canvas.setFillStyle ctx "orange"
-  Canvas.setStrokeStyle ctx "orange"
-  Canvas.fillRect ctx {x: pos.x, y: pos.y, width: 2.0, height: 2.0}
-  Canvas.beginPath ctx 
-  Canvas.moveTo ctx pos.x pos.y
-  Canvas.lineTo ctx pos2.x pos2.y 
-  Canvas.stroke ctx 
-  pure unit 
-
-
-
-
 drawAllReflectionsBy :: (WallInteractionPoints -> PrimaryReflections) -> Context2D -> ApplicationState -> Effect Unit 
 drawAllReflectionsBy f ctx state = do 
   let (SpriteMap sprites) = state.sprites 
@@ -109,17 +87,24 @@ drawAllReflectionsBy f ctx state = do
   Canvas.moveTo ctx frs.x frs.y  
   Canvas.lineTo ctx frr.x frr.y 
   Canvas.lineTo ctx frd.x frd.y 
+  Cavnas.stroke ctx 
+  Canvas.closePath ctx
 
+  Canvas.beginPath ctx
   Canvas.moveTo ctx srs.x srs.y  
   Canvas.lineTo ctx srr.x srr.y 
   Canvas.lineTo ctx srd.x srd.y 
+  Cavnas.stroke ctx 
+  Canvas.closePath ctx
 
+  Canvas.beginPath ctx
   Canvas.moveTo ctx trs.x trs.y  
   Canvas.lineTo ctx trr.x trr.y 
   Canvas.lineTo ctx trd.x trd.y 
 
   Canvas.stroke ctx 
   Canvas.closePath ctx
+  
 
 
 drawLeftReflections :: Context2D -> ApplicationState -> Effect Unit  

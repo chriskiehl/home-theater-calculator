@@ -7,12 +7,12 @@
 }
 
 #zoom-button {
-  width: 64px;
-  height: 64px;
-  background-color: red;
+  /* width: 64px;
+  height: 64px; */
+  background-color: white;
   position: absolute;
-  bottom: 1px; 
-  right: 1px;
+  bottom: 3px; 
+  right: 3px;
 }
 
 .group-padding {

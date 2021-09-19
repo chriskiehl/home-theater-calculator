@@ -171,7 +171,7 @@ readout state dispatch = R.div {children: [
         ]}
       ]},
       R.div_ [
-        R.div {className: "group-label", children: [R.text "Reflections"]}
+        R.div {className: "group-label text-center", children: [R.text "Reflections"]}
       ],
       R.div {className: "flex", children: [
         R.div {className: "flex-auto", children: [
@@ -209,37 +209,7 @@ readout state dispatch = R.div {children: [
               }
             ]}
           ]}
-      ]},
-      R.div_ [
-        -- R.h4 {style: css {textAlign: "center", children: [R.text "Config"]}},
-        -- R.div_ (state.form.mode.options # map \option -> 
-        --   R.label_ [
-        --     R.input {
-        --       type: "radio", 
-        --       name: "mode", 
-        --       value: option, 
-        --       checked: option == (show state.form.mode.value),
-        --       onClick: onClickHandler (_.mode.id) (const option)
-        --     },
-        --     R.text option
-        --   ])
-        -- ]
-      ],
-    onlyWhen isTheaterMode $
-      R.div_ [
-        -- R.text "Channels: ",
-        -- R.div_ (state.form.channels.options # map \option -> 
-        -- R.label_ [
-        --   R.input {
-        --     type: "radio", 
-        --     name: "channels", 
-        --     value: option, 
-        --     checked: show option == (spy "val:" (show state.form.channels.value)),
-        --     onClick: onClickHandler (_.channels.id) (const option)
-        --   },
-        --   R.text option
-        -- ])
-      ]
+      ]}
     ]
   ]}
   where 
