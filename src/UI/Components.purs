@@ -48,7 +48,7 @@ slider props = R.div {
         value: props.value,
         onChange: props.onChange  
       },
-      R.div_ [R.text props.value]
+      R.div_ [R.text $ props.value <> "\""]
     ]}
   ]
 }
@@ -159,7 +159,6 @@ readout state dispatch = R.div {children: [
             onChange: handler getValue $ \value -> dispatch $ ChangeListenerSlider value 
             }
           ]},
-          -- R.div_ [R.text ("FOV: " <> (toStringWith (fixed 2) stats.fov) <> "°  " <> "[" <> show stats.presence <> "]")],
           R.div {className: "slider-group", children: [
             R.div_ [R.text "Speaker distance from rear wall:"],
             slider {
