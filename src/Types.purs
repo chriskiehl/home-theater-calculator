@@ -346,6 +346,7 @@ data Action
   | ToggleZoom
   | ChangeListenerSlider String 
   | ChangeTranslateSlider String 
+  | Init 
   
 
 
@@ -381,10 +382,10 @@ data PresenceRating
 instance showPresenceRating :: Show PresenceRating where 
   show ForAnts = "For ants?!"
   show Low = "Low" 
-  show Medium = "Medium" 
-  show High = "Recommended"
-  show Ridiculous = "Ridiculous"
-  show BleeingEyes = "Probably painful"  
+  show Medium = "SMPTE Recommended" 
+  show High = "THX Recommended"
+  show Ridiculous = "Not Recommended"
+  show BleeingEyes = "Likely painful"  
 
 
 type LayoutStatistics = {

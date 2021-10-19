@@ -19,13 +19,9 @@ import Types (Action(..), ApplicationState, DispatchFn, FormField, FormFields, F
 import Utils (getValue)
 import Web.Event.EventTarget (dispatchEvent)
 
-
-controls :: FormProps -> JSX 
-controls = homeTheaterForm
-    
-report :: JSX 
-report = do 
-  R.text ""
+blogBody :: String -> JSX 
+blogBody html = do 
+  R.div {dangerouslySetInnerHTML: {__html: html}} 
 
 
 pill :: String -> String -> JSX 
@@ -75,9 +71,34 @@ btnGroup {field, dispatch, className} =
   }
 
 
-readout :: ApplicationState -> (Action -> Effect Unit) -> JSX 
-readout state dispatch = R.div {children: [
+controls :: ApplicationState -> (Action -> Effect Unit) -> JSX 
+controls state dispatch = R.div {style: css {marginBottom: "34px"}, children: [
     R.div_ [
+      R.div {
+        className: "controls group-padding",
+        children: [
+          R.div_ [
+            R.div {className: "group-label text-center", children: [R.text "Layout Controls"]}
+          ],
+          R.div {className: "slider-group", children: [
+          R.div_ [R.text if isTheaterMode then "Distance from TV" else "Distance from phantom center"],
+          slider {
+            min: "0.0", 
+            max: (toStringWith (fixed 2) stats.maximumListeningDistance), 
+            value: (toStringWith (fixed 2) $ stats.distanceFromTv),
+            onChange: handler getValue $ \value -> dispatch $ ChangeListenerSlider value 
+            }
+          ]},
+          R.div {className: "slider-group", children: [
+            R.div_ [R.text "Speaker distance from rear wall:"],
+            slider {
+              min: "0.1", 
+              max: (toStringWith (fixed 1) stats.maxDisplacement), 
+              value: toStringWith (fixed 2) (stats.frontsDistanceFromWall), 
+              onChange: handler getValue $ \value -> dispatch $ ChangeTranslateSlider value 
+            }
+        ]}
+      ]},
       R.div {style: css {margin: "10px 0"}, children: [
         R.div {className: "text-center", children: [R.text "Designing"]}, 
         btnGroup {field: state.form.mode, dispatch, className: ""}
@@ -144,31 +165,6 @@ readout state dispatch = R.div {children: [
             style: (css {width: 80})}
           ]}
       ],
-      R.div {
-        className: "controls group-padding",
-        children: [
-          R.div_ [
-            R.div {className: "group-label text-center", children: [R.text "Layout Controls"]}
-          ],
-          R.div {className: "slider-group", children: [
-          R.div_ [R.text if isTheaterMode then "Distance from TV" else "Distance from phantom center"],
-          slider {
-            min: "0.0", 
-            max: (toStringWith (fixed 2) stats.maximumListeningDistance), 
-            value: (toStringWith (fixed 2) $ stats.distanceFromTv),
-            onChange: handler getValue $ \value -> dispatch $ ChangeListenerSlider value 
-            }
-          ]},
-          R.div {className: "slider-group", children: [
-            R.div_ [R.text "Speaker distance from rear wall:"],
-            slider {
-              min: "0.1", 
-              max: (toStringWith (fixed 1) stats.maxDisplacement), 
-              value: toStringWith (fixed 2) (stats.frontsDistanceFromWall), 
-              onChange: handler getValue $ \value -> dispatch $ ChangeTranslateSlider value 
-            }
-        ]}
-      ]},
       R.div_ [
         R.div {className: "group-label text-center", children: [R.text "Reflections"]}
       ],
@@ -224,21 +220,6 @@ readout state dispatch = R.div {children: [
 
 
 
-{-
-Canvas.fillText ctx   20.0 200.0
-Canvas.fillText ctx   20.0 220.0
-Canvas.fillText ctx ("2nd Reflection: " <> (toStringWith (fixed 2) ((secondReflection.reflection.y))))  20.0 245.0
-Canvas.fillText ctx ("3rd Reflection: " <> (toStringWith (fixed 2) ((thirdReflection.reflection.x ))))  20.0 280.0
-
-let ggg = ((tileWidth :*: {x: 0.0, y: 0.0}) :**: isoTransform) :+: state.worldOrigin
-let con = C.localToIso {x: 0.0, y: 0.0} state.worldOrigin
-Canvas.fillText ctx ("local: (" <> (show state.cursor.localPosition.x) <> ", " <> (show state.cursor.localPosition.y) <> ")")  600.0 30.0
-Canvas.fillText ctx ("iso: (" <> (show state.cursor.isoPosition.x) <> ", " <> (show state.cursor.isoPosition.y) <> ")")  600.0 60.0
-  Canvas.fillText ctx ("iso: (" <> (show ggg.x) <> ", " <> (show ggg.y) <> ")")  600.0 90.0
-
-
--}
-
 errorClass :: Maybe String -> String 
 errorClass (Just _) = "error"
 errorClass (_     ) = "" 
@@ -270,44 +251,10 @@ homeTheaterForm {dispatch, fields} = do
 
   R.form_ [
     R.div_ [
-      -- R.div_ (fields.mode.options # map \option -> 
-      --   R.label_ [
-      --     R.input {
-      --       type: "radio", 
-      --       name: "mode", 
-      --       value: option, 
-      --       checked: option == (show fields.mode.value),
-      --       onClick: onClickHandler (_.mode.id) (const option)
-      --     },
-      --     R.text option
-      --   ]
-      -- )
     ],
     onlyWhen isTheaterMode $
       R.div_ [
-        -- R.text "Channels: ",
-        -- R.div_ (fields.channels.options # map \option -> 
-        -- R.label_ [
-        --   R.input {
-        --     type: "radio", 
-        --     name: "channels", 
-        --     value: option, 
-        --     checked: show option == (spy "val:" (show fields.channels.value)),
-        --     onClick: onClickHandler (_.channels.id) (const option)
-        --   },
-        --   R.text option
-        -- ])
       ]
-      -- R.div_ [ 
-      --   R.label_ [ 
-      --     R.text "Channels",
-      --     R.select {
-      --       onChange: onClickHandler (_.channels.id) identity,
-      --       children: (makeOption fields.channels) <$> fields.channels.options
-      --     }
-      -- ]],
-    
-    
   ]
 
 

@@ -158,7 +158,7 @@ setTvSprite ratio state = case ratio of
   ultraWide = sm{tv=(tvSprite TV){pos=tv.pos, image=tv24x1, images={normal: tv24x1, hover: tv24x1Highlight}}}
 
 updateChannels :: ApplicationState -> AudioChannels -> ApplicationState 
-updateChannels state channel = case (spy "channel?" channel) of 
+updateChannels state channel = case channel of 
   TwoDot  -> state{sprites=(enable [LeftFront, RightFront] state.sprites) # (disable [LeftRear, RightRear])} 
   FiveDot -> state{sprites=map _{enabled=true} state.sprites}
 
@@ -315,7 +315,7 @@ fieldOfView (SpriteMap sprites) specs = angle * 2.0
   halfScreenWidth = (screenWidth specs) / 2.0 
   center = sprites.chair
   tv = sprites.tv
-  distance = (dist center.pos tv.pos) * 16.0
+  distance = (dist center.pos tv.pos) * 12.0
   angle = atan (halfScreenWidth / distance)
 
 
@@ -323,8 +323,8 @@ presenceRating :: FOV -> PresenceRating
 presenceRating fov 
   | fov < 25.0 = ForAnts
   | fov < 30.0 = Low 
-  | fov < 40.0 = Medium 
-  | fov < 45.0 = High 
+  | fov < 36.0 = Medium 
+  | fov < 41.0 = High 
   | fov < 50.0 = Ridiculous 
   | otherwise  = BleeingEyes
 
@@ -391,7 +391,7 @@ computeLayout state = {center, radius}
   {width} = state.geometry
   screenHorizontal = screenWidth state.tvSpecs 
   targetFov = 20.0 
-  distance = ((screenHorizontal / 2.0) / (tan targetFov)) / 16.0
+  distance = ((screenHorizontal / 2.0) / (tan targetFov)) / 12.0
   radius = (distance / (cos 30.0)) 
   wallOffset = 1.75 -- pushes the initial layout 1ft away from the wall
   center = {x: width/2.0, y: distance + wallOffset}

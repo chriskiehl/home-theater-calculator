@@ -3,6 +3,14 @@
 -- | would allow serving the actual pngs. 
 module Graphcs where
 
+import Prelude
+
+import CanvasSupport (fromDataSource)
+import Data.Map (fromFoldable, Map)
+import Data.Tuple (Tuple(..))
+import Effect (Effect)
+import Effect.Ref (Ref)
+import Graphics.Canvas (CanvasImageSource)
 import Types (DataUrl)
 
 
@@ -140,5 +148,62 @@ couchHighlight = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACd
 magnifyingGlass :: DataUrl
 magnifyingGlass = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAAAXNSR0IArs4c6QAAAGBQTFRFvkov13ZD6tSq5KZyuG9Qcz45PicxoiYz5DtE93Yi/q40/udhY8dNPolIJlxCEk6JGTw+AJnbLOj1////wMvci5u0WmmIOkRmJitEGBQl/wBEaDhs9nV6tVCI6LeWwoVp5oy3agAAACB0Uk5TAP////////////////////////////////////////+Smq12AAAAaUlEQVQokc3Ryw2AMAwD0O7gdP9VUfOBJjggcSKXoj4ZhDPG+8CH09QhHGTMDIgzo5MzanDdiwjsmQVVSxTnSyNKEd8RDOduGZExt/BUQqnv1t9WPNNrZXQzvmyq+Rs/1QaXtkn98dZsDmsaGlSY8wYUAAAAAElFTkSuQmCC"    
 
+-- | I haven't been able to pin down the why, but some browser 
+-- | level magic seems to happen when we convert the data urls to 
+-- | CanvasImageSource's (even though CanvasImageSource isn't 
+-- | a real "thing" https://developer.mozilla.org/en-US/docs/Web/API/CanvasImageSource)
+-- | However, without doing this, we get really obnoxious rendering 
+-- | issues. The sprites will flicker or outright fail to load and 
+-- | render entirely. This is fucking bizarre, but... I give up 
+-- | on trying to understand it. 
+preload :: Effect Unit
+preload = do 
+  let _ = fromDataSource couch 
+  let _ = fromDataSource couchHighlight
+  let _ = fromDataSource speaker
+  let _ = fromDataSource frontSpeakerHighlight 
+  let _ = fromDataSource magnifyingGlass
+  let _ = fromDataSource listenerHighlight
+  let _ = fromDataSource listener
+  let _ = fromDataSource bottomWallRev
+  let _ = fromDataSource bottomWall
+  let _ = fromDataSource floorTile
+  let _ = fromDataSource twostackHover
+  let _ = fromDataSource leftRearHighlight
+  let _ = fromDataSource leftRear
+  let _ = fromDataSource rightRearHighlight
+  let _ = fromDataSource rightRear
+  let _ = fromDataSource twostack
+  let _ = fromDataSource twoblock
+  let _ = fromDataSource desk
+  let _ = fromDataSource thiccWall
+  let _ = fromDataSource wall2
+  let _ = fromDataSource wallCapRight
+  let _ = fromDataSource wallCapLeft
+  let _ = fromDataSource wall
+  let _ = fromDataSource board2
+  let _ = fromDataSource board1
+  let _ = fromDataSource hover
+  let _ = fromDataSource top
+  let _ = fromDataSource blockhover
+  let _ = fromDataSource blockChunkie
+  let _ = fromDataSource block
+  let _ = fromDataSource heftTwoStack
+  let _ = fromDataSource bigtv
+  let _ = fromDataSource block3x1x2Chunkie
+  let _ = fromDataSource block3x1x2
+  let _ = fromDataSource block4x3hover
+  let _ = fromDataSource block4x3
+  let _ = fromDataSource tv24x1Highlight
+  let _ = fromDataSource tv24x1
+  let _ = fromDataSource tv16x9Highlight
+  let _ = fromDataSource tv16x9
+  let _ = fromDataSource tv
+  pure unit 
+-- imageCache :: Map DataUrl CanvasImageSource
+-- imageCache = fromFoldable [
+--     Tuple couch (fromDataSource couch),
+--     Tuple couchHighlight (fromDataSource couchHighlight) 
+-- ]
 
 

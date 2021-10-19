@@ -51,3 +51,4 @@ booleanOr f g = (\s -> (f s) || (g s))
 infixr 5 booleanAnd as &&&&
 infixr 5 booleanOr as ||||
 
+

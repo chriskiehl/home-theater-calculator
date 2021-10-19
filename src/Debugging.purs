@@ -101,9 +101,10 @@ drawAllReflectionsBy f ctx state = do
   Canvas.moveTo ctx trs.x trs.y  
   Canvas.lineTo ctx trr.x trr.y 
   Canvas.lineTo ctx trd.x trd.y 
-
   Canvas.stroke ctx 
   Canvas.closePath ctx
+
+  pure unit 
   
 
 

@@ -12,7 +12,7 @@ import Types (AnchorPosition(..), ApplicationState, AudioChannels(..), FormID(..
 
 initialWidth = 15
 initialDepth = 18
-initialScreenSize = 60
+initialScreenSize = 50
 
 initialGeometry :: Geometry
 initialGeometry = {
@@ -33,7 +33,7 @@ initialState = {
   worldOrigin: {x: 448.0, y: 100.0},
   zoomMultiplier: 2.0,
   sprites: SpriteMap {
-    chair: (Sprites.couchGuy Chair){pos={x: 0.0, y: 0.0}, anchor=CenterNorth, image=listener},
+    chair: (Sprites.couchGuy Chair){pos={x: 0.0, y: 0.0}, anchor=CenterNorth},
     leftFront: Sprites.frontSpeaker LeftFront,
     rightFront: Sprites.frontSpeaker RightFront,
     tv: (Sprites.tvSprite TV){pos={x: 3.0/2.0, y: 0.0}},
