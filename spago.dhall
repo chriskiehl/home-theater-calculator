@@ -24,6 +24,7 @@ to generate this file without the comments in this block.
   , "functors"
   , "integers"
   , "lists"
+  , "markdownit"
   , "math"
   , "maybe"
   , "nullable"
@@ -39,12 +40,14 @@ to generate this file without the comments in this block.
   , "record"
   , "record-extra"
   , "refs"
+  , "strings"
   , "transformers"
   , "tuples"
   , "unsafe-coerce"
   , "web-dom"
   , "web-events"
   , "web-html"
+  , "web-storage"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
