@@ -13,6 +13,15 @@ yarn spago build
 yarn run dev
 ```
 
+### Bundling for deployment
+
+```
+yarn parcel build assets/index.js
+```
+
+copy/paste the output file into the blog dir. 
+
+
 ### Super quick overview for the review: 
 
 This basically a glorified basic trig calculator that does two things: 
