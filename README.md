@@ -3,7 +3,7 @@
 A toy for finding idealized layouts for a Home Theater or Studio setup, written by a guy who is not really all that into home theater, and who also hasn't followed any of the advice suggested by the tool. 
 
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/1408720/145698370-a97679c3-98f7-413a-ac4f-85f6cf23c2cd.png"/>
+  <img src="https://d39wtn5cxihhz5.cloudfront.net/content/reflection-computation.gif"/>
 </p>
 
 
