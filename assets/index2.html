@@ -32,8 +32,67 @@ window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
         </header>
         <div class="primary-content" style="margin-top: 25px;">
             <div>
-                <article id="article">
-                    
+                <article>
+                    <p><img alt="image"
+                            src="https://s3.amazonaws.com/awsblogstore/articles/24a31d4f/b1044e8d-ports-and-adapters-1920px.jpeg"
+                            srcset="https://s3.amazonaws.com/awsblogstore/articles/24a31d4f/b1044e8d-ports-and-adapters-1920px.jpeg 1920w, https://s3.amazonaws.com/awsblogstore/articles/24a31d4f/b1044e8d-ports-and-adapters-1600px.jpeg 1600w, https://s3.amazonaws.com/awsblogstore/articles/24a31d4f/b1044e8d-ports-and-adapters-1280px.jpeg 1280w, https://s3.amazonaws.com/awsblogstore/articles/24a31d4f/b1044e8d-ports-and-adapters-960px.jpeg 960w, https://s3.amazonaws.com/awsblogstore/articles/24a31d4f/b1044e8d-ports-and-adapters-640px.jpeg 640w, https://s3.amazonaws.com/awsblogstore/articles/24a31d4f/b1044e8d-ports-and-adapters-320px.jpeg 320w" />
+                    </p>
+                    <blockquote>
+                        <p>"Write it so that we can just bolt on whatever we need later" </p>
+                    </blockquote>
+                    <h1>Teaching the important part of Ports and Adapters</h1>
+                    <p>Experientially, I've found that the popular explanations of ports and adapters are not very good
+                        at actually explaining Ports and Adapters<sup>[0][1][2]</sup>. If you send the usual batch of
+                        articles to newer devs, chances are high that they'll come back either confused, missing the
+                        point, or, most commonly, drawing the <i>wrong</i> lesson entirely (like thinking the important
+                        part is the naming). In short, we need to teach it better. This is my approach to explaining the
+                        architecture.</p>
+                    <p>From a pedagogy stand point, the problem seems to be that explanations get so bogged down in the
+                        details that the main idea never gets to bubble to the surface. Not to mention, for whatever
+                        reason, articles on the topic tend to suffer from enterprise buzzword soup which further bogs
+                        things down. Read the original ports and adapters article<sup>[0]</sup> and tell me you don't
+                        get semantic satiation of the word "port" by the end. Port. Port. Port. Other popular
+                        descriptions floating around the internet aren't much better with their usage of things like
+                        "transport layers", "Interactors", and other obfuscations<sup>[1]</sup>. If you dip into the
+                        shamelessly re-branded "clean architecture" version of all this, you'll be greeted with an
+                        entire 300+ page book of lingo from your friendly neighborhood Uncle Bob<sup>[4]</sup>. Throw
+                        any of those at someone for the first time, and they'll walk away with the view that Ports and
+                        Adapters is some crazy complex over engineered architecture. </p>
+                    <p>So when explaining it, you've gotta ignore all the details and cut down to the absolute core of
+                        what the architecture is about, which is one very basic thing:</p>
+                    <p><strong>Write your code so that you can add new ways of interacting with the world later
+                            <i>without</i> having to modify anything you've already written.</strong></p>
+                    <p>That's it. That's the whole explanation. When teaching it, the trick is to <i>not</i> mention
+                        "Ports" or "Hexagons", or other shapes, and instead just explain the <i>quality that we want our
+                            architecture to provide.</i> Good architecture gives us the freedom to attach new ways of
+                        communicating with the outside world without requiring us to modify any existing code in order
+                        to do so. That's what we're after.</p>
+                    <p>Then you pair it with a small challenge / heuristic: pick two wildly different ways of
+                        interacting with the world, say, an HTTP API and a local CLI, and then ask how they would have
+                        to structure their code so that it could be used to power both of these external connections to
+                        the world. Magically, all the other buzz word stuff tends to fall into place without ever being
+                        explicitly defined or explained, because there's really only one <i>obvious</i> way to do it: by
+                        decoupling the core of the program from the external world, giving it some standardized
+                        interface (aka: a <i>port</i>)<sup>[5]</sup> over which new pieces can talk, and then building
+                        some <i>adapters</i> for schlepping data in/out of that interface. They'll still of course
+                        fumble around a bit with the exact boundaries, but this tends to get the soul of the
+                        architecture internalized.</p>
+                    <p>Once the core idea is shoved into their heads, then you can hit them with the "by the way, this
+                        approach is usually called {pick your branding flavor here}", and which point they'll have the
+                        tools to actually parse through the extraneous details.</p>
+                    <p><strong>Footnotes:</strong></p>
+                    <p><small></p>
+                    <ul>
+                        <li>[0] https://alistair.cockburn.us/hexagonal-architecture/</li>
+                        <li>[1] https://netflixtechblog.com/ready-for-changes-with-hexagonal-architecture-b315ec967749
+                        </li>
+                        <li>[2] https://www.kennethlange.com/ports-and-adapters/</li>
+                        <li>[4] http://cleancoder.com/products</li>
+                        <li>[5] "interface" used only in the general API contract sense, not in the Java Interface
+                            sense. Stop writing so many useless one-off interfaces, people! Interfaces are for
+                            <i>abstractions</i>, not <i>concretions!</i> </li>
+                    </ul>
+                    <p></small></p>
                 </article>
             </div>
         </div>
