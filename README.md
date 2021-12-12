@@ -1,8 +1,17 @@
-# home-theater-calculator
+# Home Theater Calculator
 
-tl;dr: a wip toy for finding useful measurements related to home theater / studio setup. 
+A toy for finding idealized layouts for a Home Theater or Studio setup, written by a guy who is not really all that into home theater, and who also hasn't followed any of the advice suggested by the tool. 
 
 ![image](https://user-images.githubusercontent.com/1408720/126683610-9b9cb055-abee-4ec4-94df-521908b3cc9c.png)
+
+I've never let small things like having literally no idea what I'm talking about stop me before, so you can check out all my moral grandstanding about theater setups here: [Home Theater Calculator](https://chriskiehl.com/article/home-theater-calculator) 
+
+
+### About 
+
+This is mostly one of those "build something to learn something better" projects. In this case, [Purescript](https://www.purescript.org/), with which I am currently totally enamored. It should be taken as such. 
+
+It was also a vehicle for me playing with pixel art. As a non-artist, I think we can all agree: I should stick to programming. 
 
 
 ### Running
@@ -22,27 +31,9 @@ yarn parcel build assets/index.js
 copy/paste the output file into the blog dir. 
 
 
-### Super quick overview for the review: 
+**Special Thanks:**
 
-This basically a glorified basic trig calculator that does two things: 
-
-1. gives idealized theater / studio layouts for the parameters chosen (where "ideal" is defined by various FOV and audio config guidelines from THC and the ITU-R peeps)
-2. Computes primary reflection points for those setups so you can nerd out and put up bass traps / diffusers / etc.. 
-
-
-### Notable Modules: 
-
- * The `Types` module has all the, as you'd expect, types along with comments explaining what they do. I don't know of centralizing them all like this is normal, but I saw they did that in the [multipac](https://github.com/hdgarrood/multipac/) library, so I did the same
- * The `Core` module holds just about all the logic in the system. That's where you find all the movement handlers, collision detection, layout management, etc.. Tracing through `handleMouseDown`, `handleMouseUp`, and `handleMouseMove` would give you a solid overview of the major functionlaity. 
-
-Some modules, like `Debugging` can be safely ignored for the most part. It's just quickly thrown together things for drawing debugging info onto the canvas. 
-
-### State of the projcect: 
-
-Pretty rough. After a ton of failed starts, attempts at building some highly cohesive compositional thing were abandoned in favor of getting it working. I spent a lot of time after the fact trying to work backwards into one, but results were not great. This kind of event driven 'game'(like) programming is pretty new to me, so the bulk of it turned into just bouncing things off the walls to see what would stick. 
-   
-
-
+[Sandy Maguire](https://github.com/isovector) gave me an awesome and thorough [code review](https://github.com/chriskiehl/home-theater-calculator/pull/1).
 
 
 
