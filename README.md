@@ -2,9 +2,12 @@
 
 A toy for finding idealized layouts for a Home Theater or Studio setup, written by a guy who is not really all that into home theater, and who also hasn't followed any of the advice suggested by the tool. 
 
-![image](https://user-images.githubusercontent.com/1408720/126683610-9b9cb055-abee-4ec4-94df-521908b3cc9c.png)
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/1408720/145698370-a97679c3-98f7-413a-ac4f-85f6cf23c2cd.png"/>
+</p>
 
-I've never let small things like having literally no idea what I'm talking about stop me before, so you can check out all my moral grandstanding about theater setups here: [Home Theater Calculator](https://chriskiehl.com/article/home-theater-calculator) 
+
+I've never let small things like having literally no idea what I'm talking about stop me, so you can check out all my moral grandstanding about theater setups here: [Home Theater Calculator](https://chriskiehl.com/article/home-theater-calculator) 
 
 
 ### About 
